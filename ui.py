@@ -2,6 +2,7 @@
 Module for interacting with the user.
 Provides ready-made functions that can be used by buttons in any extension.
 """
+import rhinoscriptsyntax as rs
 from utils import GetBreps
 from document import ElementUserText
 
@@ -60,3 +61,15 @@ class Export:
         # get file
         # rhyton.JSON.write(file, data)
         pass
+
+
+class SelectionWindow:
+
+    @staticmethod
+    def show(options, message=None):
+        if not type(options) == dict:
+            options = {(i, i) for i in options}
+
+        res = rs.ListBox(options.keys(), message)
+        if res:
+            return options[res]

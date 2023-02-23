@@ -1,13 +1,13 @@
 """
 Module for color operations.
 """
-import rhyton
 import colorsys
 import os
 import json
 from collections import defaultdict
-from rhyton.variables import RHYTON_COLORSCHEME
-from rhyton.variables import DATA, IS_INSTANCE, NAME, PARAM_TYPE
+from rhyton.document import *
+from rhyton.color import Color, ColorRange
+from rhyton.ui import SelectionWindow
 
 
 class Color:
@@ -53,16 +53,13 @@ class ColorScheme:
     """
     Class for handling relationships between labels and colors.
     """
-
-    JSON_PATH = 'C:\\temp\\rhyton\\colorscheme.json'
-
     def __init__(self):
         """
         Inits a new ColorScheme instance.
         """
-        self.COLOR_SCHEMES = 'rhyton.colorschemes'
-        self.schemes = rhyton.ConfigStorage().get(
-            self.COLOR_SCHEMES, defaultdict())
+        self.flag = 'rhyton.colorschemes'
+        self.schemes = DocumentConfigStorage().get(
+            self.flag, defaultdict())
         self.defaultColors = [
                             '#F44336', '#E91E63', '#9C27B0', '#673AB7',
                             '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4',
@@ -79,16 +76,17 @@ class ColorScheme:
                             ]
         self.extendedColors = self.defaultColors + self.additionalColors
 
-
     @staticmethod
-    def toJSON(data, path=JSON_PATH):
+    def toJSON(data, path):
         """
         Write color scheme to json
+
         Args:
             data (dict): The data to export
-            path (str, optional): The output file path. Defaults to 'C:\temp\rhyton\colorscheme.json'.
+            path (str): The output file path.
+
         Returns:
-            string: The json file
+            string: The json filepath
         """
         directory = os.path.dirname(path)
         if not os.path.exists(directory):
@@ -103,8 +101,10 @@ class ColorScheme:
     def fromJSON(path):
         """
         Reads a color scheme from json.
+
         Args:
             path (string): The json file
+
         Returns:
             dict: The color scheme
         """
@@ -114,193 +114,160 @@ class ColorScheme:
         return scheme
 
     @staticmethod
-    def getFromUser(excludeSchemes=None, excludeViews=None):
+    def getFromUser(excludeSchemes=None):
         """
         Asks the user to select a rhyton color scheme.
+
         Args:
             excludeSchemes (string, optional): The name of one or more schemes to exclude. Defaults to None.
-            excludeViews (string, optional): The id(s) of one ore more views to exclude. Defaults to None.
+
         Returns:
             dict: The selected rhyton color scheme
         """
         if not type(excludeSchemes) == list:
             excludeSchemes = [excludeSchemes]
 
-        if excludeViews:
-            if not type(excludeViews) == list:
-                excludeViews = [excludeViews]
+        names = [scheme['name'] for scheme in ColorScheme().schemes
+                         if not scheme['name'] in excludeSchemes]
 
-        schemes = []
-        for scheme in ColorScheme().schemes:
-            if not scheme[NAME] in excludeSchemes:
-                schemes.append(scheme)
-
-        names = [scheme[NAME] for scheme in schemes]
-
-        if excludeViews:
-            for scheme in schemes:
-                for viewId in excludeViews:
-                    try:
-                        if not str(viewId) in rhyton.AffectedViews().get(scheme):
-                            names.remove(scheme[NAME])
-                    except:
-                        names.remove(scheme[NAME])
-
-        schemeName = forms.CommandSwitchWindow.show(sorted(names),
+        schemeName = SelectionWindow.show(sorted(names),
                 message='Choose Color Scheme:')
 
         if not schemeName:
             return None
 
-        return ColorScheme().load(schemeName)
+        return ColorScheme().schemes.get(schemeName)
 
     @staticmethod
-    def apply(view, elements, schemeName, isInstance, type, patternId):
+    def apply(guids, schemeName):
         """
-        Applies a rhyton color scheme to given elements in given view.
-        Updates the colors scheme with new keys and colors.
+        Applies a rhyton color scheme to given objects.
+        Updates the color scheme with new keys and colors.
+
         Args:
-            view (object): A Revit view
-            elements (object): A list of Revit elements
+            guids (str): A list of Rhino objects ids
             schemeName (string): The name of the color scheme
-            isInstance (bool): True for instance parameters, false for type parameters
-            type (string): The type of the parameter (Area, Number, Length, etc..)
-            patternId (object): The Revit element id of the fillpattern to use
+
         Returns:
             dict: The applied and updated color scheme
         """
-        keys = set()
-        for element in elements:
-            key = rhyton.GetKey(element, schemeName, isInstance, type)
-            if key:
-                keys.add(key)
-
-        scheme = ColorScheme().load(schemeName)
-        if not scheme:
-            scheme = ColorScheme().generate(schemeName, keys, isInstance)
-            if not scheme:
+        keys = ElementUserText.getKeys(guids)
+        keyColors = ColorScheme().schemes.get(schemeName)
+        if not keyColors:
+            keyColors = ColorScheme().generate(keys)
+            if not keyColors:
                 return None
-        elif scheme:
-            ColorScheme().update(scheme, keys)
+            ColorScheme().save(schemeName, keyColors)
+        elif schemeName:
+            ColorScheme().update(schemeName, keys)
 
-        ColorScheme().save(scheme)
-        
-        overriddenElements = rhyton.AffectedElements().get(
-            scheme, viewId=view.Id)
+        objectData = ElementUserText.get(guids, keys=schemeName)
+        for entry in objectData:
+            value = entry.get(schemeName)
+            if value:
+                entry['color'] = keyColors[value]
 
-        for element in elements:
-            key = rhyton.GetKey(element, schemeName, isInstance, type)
-            if key:
-                colorHEX = scheme[DATA][key]
-                colorRGB = rhyton.Color.HEXtoRGB(colorHEX)
-                rhyton.ElementOverrides(view, element).set(colorRGB, patternId)
-                overriddenElements.append(str(element.Id))
-            else:
-                rhyton.ElementOverrides(view, element).clear()
-                try:
-                    overriddenElements.remove(str(element.Id))
-                except:
-                    pass
-        
-        rhyton.AffectedElements().dump(scheme, view.Id, overriddenElements)  
-        return scheme
+        ElementOverrides.apply(objectData)
 
-    def generate(self, schemeName, keys,
-            isInstance=None, paramType=None, excludeColors=None, gradient=False):
+    def generate(self, keys, excludeColors=None, gradient=False):
         """
         Generates a new color scheme.
+
+        A color scheme has the following layout::
+
+            current:
+            {
+                "name": <schemeName>,
+                "data":{"key1": <hexcolor>}
+            }
+
+            proposed:
+            {
+                <schemeName>: {"key1": <hexcolor>}
+            }
+
         Args:
             schemeName (string): The name of the color scheme
             keys (string): A set of keys
             excludeColors (string, optional): A list of colors to exclude
             gradient (int, optional): A tuple with start and end color
+
         Returns:
-            dict: A color scheme: {name: schemeName, data: {key: color}}
+            dict: A color scheme
         """
         if not gradient:
             colors = ColorScheme().getColors(len(keys), excludeColors)
         elif gradient:
-            colorsHSV = ColorRange(len(keys), min=gradient[0], max=gradient[1]).getHSV()
+            colorsHSV = ColorRange(
+                    len(keys), min=gradient[0], max=gradient[1]).getHSV()
             colors = []
             for hsv in colorsHSV:
                 rgb = Color.HSVtoRGB(hsv)
                 colors.append(Color.RGBtoHEX(rgb))
-        scheme = {}
-        scheme[NAME] = schemeName
-        scheme[IS_INSTANCE] = isInstance
-        scheme[PARAM_TYPE] = paramType
-        scheme[DATA] = {}
-        for value, color in zip(sorted(keys), colors):
-            scheme[DATA][value] = color
-        return scheme
 
-    def update(self, colorScheme, keys):
+        keyColors = {}
+        for value, color in zip(sorted(keys), colors):
+            keyColors[value] = color
+
+        return keyColors
+
+    def update(self, schemeName, keys):
         """
-        Updates a given color scheme with new keys and default colors.
+        Updates a given color scheme with new keys and default colors
+        and saves the changes to the DocumentConfigStorage.
+
         Args:
-            colorScheme (dict): The color scheme to update
+            scheme (dict): The color scheme to update
             keys (set): The keys to add
+
         Returns:
             dict: The updated color scheme
         """
-        newkeys = set()
-        for key in keys:
-            if key not in colorScheme[DATA].keys():
-                newkeys.add(key)
+        oldKeys = set(self.schemes[schemeName].keys())
+        newKeys = list(set(keys).difference(oldKeys))
 
-        if newkeys:
-            excludeColors = colorScheme[DATA].values()
-            tempScheme = ColorScheme().generate(
-                'tempName', newkeys, excludeColors=excludeColors)
-            if not tempScheme:
+        if newKeys:
+            excludeColors = self.schemes[schemeName].values()
+            tempKeyColors = ColorScheme().generate(
+                    newKeys, excludeColors=excludeColors)
+            if not tempKeyColors:
                 return None
-            colorScheme[DATA].update(tempScheme[DATA])
+            
+            self.schemes[schemeName].update(tempKeyColors)
 
-        return colorScheme
+        DocumentConfigStorage().set(self.flag, self.schemes)
 
-    def load(self, schemeName):
+    def save(self, schemeName, keyValues):
         """
-        Loads a color scheme by name.
+        Saves a single color scheme to the rhyton DocumentConfigStorage.
+
+        Color schemes are stored as follows::
+
+            {
+                <schemeName1>: {"key1": "value1"},
+                <schemeName2>: {"key1": "value1"}
+            }
+
         Args:
-            schemeName (string): The name of the color scheme
-        Returns:
-            dict: The color scheme
+            schemeName (str): The name of the color scheme
+            keyValues (dict): The keys and colors associated with the name
         """
-        for scheme in self.schemes:
-            if scheme[NAME] == schemeName:
-                return scheme
-        return None
+        scheme = {}
+        scheme[schemeName] = keyValues
+        self.schemes.update(scheme)
+        DocumentConfigStorage().set(self.flag, self.schemes)
 
-    def save(self, scheme):
+    def delete(self, schemeName):
         """
-        Saves a color scheme to the revitron DocumentConfigStorage.
-        Args:
-            scheme (dict): A color scheme
-        """
-        writeSchemes = []
-        update = False
-        for existingScheme in self.schemes:
-            if scheme[NAME] == existingScheme[NAME]:
-                existingScheme[DATA] = scheme[DATA]
-                update = True
-            writeSchemes.append(existingScheme)
-        
-        if not update:
-            writeSchemes.append(scheme)
-        rhyton.ConfigStorage().set(self.COLOR_SCHEMES, writeSchemes)
+        Deletes a color scheme from the rhyton DocumenConfigStorage.
 
-    def delete(self, scheme):
-        """
-        Deletes a color scheme from the revitron DocumenConfigStorage.
         Args:
             scheme (dict): A color scheme
         """
-        usedSchemes = []
-        for docScheme in self.schemes:
-            if not docScheme[NAME] == scheme[NAME]:
-                usedSchemes.append(docScheme)
+        if schemeName in self.schemes:
+            del self.schemes[schemeName]
         
-        rhyton.ConfigStorage().set(self.COLOR_SCHEMES, usedSchemes)
+        DocumentConfigStorage().set(self.flag, self.schemes)
 
     def getColors(self, count, excludeColors=[]):
         """
