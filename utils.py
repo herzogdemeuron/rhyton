@@ -27,7 +27,7 @@ def Value(value):
     """
     return str(value).replace('_', " ").title()
 
-def GetBreps(filterByTypes=[1073741824, 16, 8]):
+def GetBreps(filterByTypes=[8, 16, 1073741824]):
     """
     Gets the currently selected Rhino objects or asks the user to go get some.
     
@@ -40,7 +40,11 @@ def GetBreps(filterByTypes=[1073741824, 16, 8]):
     Returns:
         list: A list of Rhino objects ids.
     """
-    breps = rs.GetObjects(filter=filterByTypes, preselect=True)
+    selection = rs.GetObjects(preselect=True, select=True)
+    if not selection:
+        return None
+    
+    breps = [b for b in selection if rs.ObjectType(b) in filterByTypes]
     return breps
 
 def toList(data):
@@ -72,7 +76,7 @@ def groupGuidsBy(data, keys):
         data (dict): The Dictionary to re-organize.
         keys (list[str]): The list of keys to group by.
     """
-    mergedDict = {}
+    mergedDict = dict()
     
     for d in data:
         values = tuple(d[key] for key in keys)
@@ -82,4 +86,10 @@ def groupGuidsBy(data, keys):
         
         mergedDict[values]["guid"].append(d["guid"])
         
-    return [{"guid": v["guid"], **dict(zip(keys, k))} for k, v in mergedDict.items()]
+    result = []
+    for k, v in mergedDict.items():
+        newDict = dict(zip(keys, k))
+        newDict["guid"] = v["guid"]
+        result.append(newDict)
+
+    return result

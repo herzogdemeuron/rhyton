@@ -5,43 +5,39 @@ Provides ready-made functions that can be used by buttons in any extension.
 import os
 import rhinoscriptsyntax as rs
 import export
-from utils import GetBreps, groupGuidsBy
-from document import ElementUserText, TextDot, Group, ElementOverrides
-from document import DocumentConfigStorage
-from color import ColorScheme
-
+import rhyton
 
 
 class Visualization:
 
     @staticmethod
     def byGroup():
-        breps = GetBreps()
-        keys = ElementUserText.getKeys(breps)
+        breps = rhyton.GetBreps()
+        keys = rhyton.ElementUserText.getKeys(breps)
         keys.add("grand_total")
         selectedKey = SelectionWindow.show(keys, message='Select Parameter to group by:')
         if not selectedKey:
             return
         
-        objectData = ColorScheme.apply(breps, selectedKey)
-        objectData = groupGuidsBy(objectData, [selectedKey, 'color'])
-        objectData = TextDot.add(objectData)
+        objectData = rhyton.ColorScheme.apply(breps, selectedKey)
+        objectData = rhyton.groupGuidsBy(objectData, [selectedKey, 'color'])
+        objectData = rhyton.TextDot.add(objectData)
         for item in objectData:
-            Group.create(item['guid'], item[selectedKey])
+            rhyton.Group.create(item['guid'], item[selectedKey])
 
     @staticmethod
     def byValue():
-        breps = GetBreps()
-        keys = ElementUserText.getKeys(breps)
+        breps = rhyton.GetBreps()
+        keys = rhyton.ElementUserText.getKeys(breps)
         selectedKey = SelectionWindow.show(keys, message='Select Parameter to visualize:')
         if not selectedKey:
             return
         
-        objectData = ColorScheme.applyGradient(breps, selectedKey)
-        objectData = groupGuidsBy(objectData, [selectedKey, 'color'])
-        objectData = TextDot.add(objectData)
+        objectData = rhyton.ColorScheme.applyGradient(breps, selectedKey)
+        objectData = rhyton.groupGuidsBy(objectData, [selectedKey, 'color'])
+        objectData = rhyton.TextDot.add(objectData)
         for item in objectData:
-            Group.create(item['guid'], item[selectedKey])
+            rhyton.Group.create(item['guid'], item[selectedKey])
     
     @staticmethod
     def reset():
@@ -53,23 +49,23 @@ class Visualization:
                     choices, message='Reset all visualizations?')
 
         if resetAll:
-            data = DocumentConfigStorage().get('rhyton.originalColors')
+            data = rhyton.DocumentConfigStorage().get('rhyton.originalColors')
             guids = set(d['guid'] for d in data)
-            Group.dissolve(guids)
-            ElementOverrides.clear(guids)
+            rhyton.Group.dissolve(guids)
+            rhyton.ElementOverrides.clear(guids)
         elif not resetAll:
-            breps = GetBreps()
-            Group.dissolve(breps)
-            ElementOverrides.clear(breps)
+            breps = rhyton.GetBreps()
+            rhyton.Group.dissolve(breps)
+            rhyton.ElementOverrides.clear(breps)
     
     @staticmethod
     def export():
-        breps = GetBreps()
+        breps = rhyton.GetBreps()
         CSV, JSON = "CSV", "JSON"
         exportMethod = SelectionWindow.show(
                 [CSV, JSON],
                 message='Select export format:')
-        keys = ElementUserText.getKeys()
+        keys = rhyton.ElementUserText.getKeys()
         # add memory to remember state of checkboxes
         selectedKeys = SelectionWindow.showBoxes(keys)
 
@@ -94,13 +90,13 @@ class Export:
 
     @staticmethod
     def toCSV(guids, keys):
-        data = ElementUserText.get(guids, keys)
+        data = rhyton.ElementUserText.get(guids, keys)
         file = export.CSV.write(data)
         os.startfile(file)
 
     @staticmethod
     def toJSON(guids, keys):
-        data = ElementUserText.get(guids, keys)
+        data = rhyton.ElementUserText.get(guids, keys)
         file = export.JSON.write(data)
         os.startfile(file)
 
@@ -110,7 +106,7 @@ class SelectionWindow:
     @staticmethod
     def show(options, message=None):
         if not type(options) == dict:
-            options = {(i, i) for i in options}
+            options = dict((i, i) for i in options)
 
         res = rs.ListBox(options.keys(), message)
         if res:

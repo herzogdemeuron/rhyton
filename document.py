@@ -3,13 +3,13 @@ Module for changing the document.
 """
 import json
 
-import rhinosciptsyntax as rs
+import rhinoscriptsyntax as rs
+import rhyton
+
 from Rhino.Geometry import Line
 
 from collections import defaultdict
 
-from rhyton.utils import Key, Value, toList
-from rhyton.color import Color
 
 
 class ElementOverrides:
@@ -50,20 +50,20 @@ class ElementOverrides:
         Args:
             overrides (list(dict)): A dictionary or a list of dictionaries.
         """
-        originalColors = {}
+        originalColors = dict()
 
         for override in overrides:
             guids = override['guid']
-            guids = toList(guids)
+            guids = rhyton.toList(guids)
             
             for guid in guids:
-                original = {}
+                original = dict()
                 original['source'] = rs.ObjectColorSource(guid)
                 original['color'] = rs.ObjectColor(guid)
                 originalColors[guid] = original
                 rs.ObjectColor(
                         guid,
-                        Color.HEXtoRGB(override['color']))
+                        rhyton.Color.HEXtoRGB(override['color']))
 
         AffectedElements.save('rhyton.originalColors', originalColors)
 
@@ -130,14 +130,14 @@ class TextDot:
         Returns:
             list: A list of the newly added text dots.
         """
-        data = toList(data)
+        data = rhyton.toList(data)
         for dot in data:
             bBox = rs.BoundingBox(dot['guid'])
             point = Line(bBox[0], bBox[6]).PointAt(0.5)
             textDot = rs.AddTextDot(dot['value'], point)
             rs.ObjectColor(
                     textDot,
-                    Color.HEXtoRGB(dot['color']))
+                    rhyton.Color.HEXtoRGB(dot['color']))
             rs.TextDotFont(textDot, 'Arial')
             rs.TextDotHeight(textDot, 12.0)
             dot['guid'].append(textDot)
@@ -178,7 +178,7 @@ class AffectedElements:
         Args:
             guids (str): A single or a list of Rhino object ids.
         """
-        guids = toList(guids)
+        guids = rhyton.toList(guids)
 
         existing = DocumentConfigStorage().get(
                 flag, defaultdict())
@@ -195,7 +195,7 @@ class DocumentConfigStorage:
     """
     def __init__(self):
         self.storageName = 'RHYTON_CONFIG'
-        self.storage = {}
+        self.storage = dict()
         raw = rs.GetDocumentUserText(key=self.storageName)
         if raw:
             self.storage = json.loads(raw)
@@ -277,7 +277,7 @@ class ElementUserText:
         Args:
             data (list(dict)): A list of dictionaries describing the 
         """
-        data = toList(data)
+        data = rhyton.toList(data)
 
         guids =  set()
         for entry in data:
@@ -285,7 +285,7 @@ class ElementUserText:
             guids.add(guid)
             del entry['guid']
             for key, value in entry.items():
-                rs.SetUserText(guid, Key(key), Value(value))
+                rs.SetUserText(guid, rhyton.Key(key), rhyton.Value(value))
 
         AffectedElements.save('rhyton.usertextElements', guids)
 
@@ -316,7 +316,7 @@ class ElementUserText:
             if not keys: 
                 keys = rs.GetUserText(guid)
 
-            entry = {}
+            entry = dict()
             entry['guid'] = guid
             for key in keys:
                 entry[key] = rs.GetUserText(guid, key)
@@ -332,7 +332,7 @@ class ElementUserText:
         Args:
             guids (str): A list of Rhino objects ids.
         """
-        guids = toList(guids)
+        guids = rhyton.toList(guids)
 
         return (rs.GetUserText(guid) for guid in guids)
     
@@ -344,12 +344,12 @@ class ElementUserText:
         Args:
             guids (str): A list of Rhino objects ids.
         """
-        guids = toList(guids)
+        guids = rhyton.toList(guids)
 
         values = set()
         for guid in guids:
             if fromKeys:
-                fromKeys = toList(fromKeys)
+                fromKeys = rhyton.toList(fromKeys)
                 for key in fromKeys:
                     values.add(rs.GetUserText(guid, key))
             else:
@@ -388,7 +388,7 @@ class Group:
         Args:
             guids (str): A list or a single Rhino object id.
         """
-        guids = toList(guids)
+        guids = rhyton.toList(guids)
         groupNames = set()
         for guid in guids:
             groupNames.add(rs.ObjectTopGroup(guid))

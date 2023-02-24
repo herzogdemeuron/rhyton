@@ -4,10 +4,10 @@ Module for color operations.
 import colorsys
 import os
 import json
+import rhyton
+from rhyton.document import DocumentConfigStorage
 from collections import defaultdict
-from rhyton.document import *
-from rhyton.color import Color, ColorRange
-from rhyton.ui import SelectionWindow
+
 
 
 class Color:
@@ -58,7 +58,7 @@ class ColorScheme:
         Inits a new ColorScheme instance.
         """
         self.flag = 'rhyton.colorschemes'
-        self.schemes = DocumentConfigStorage().get(
+        self.schemes = rhyton.DocumentConfigStorage().get(
             self.flag, defaultdict())
         self.defaultColors = [
                             '#F44336', '#E91E63', '#9C27B0', '#673AB7',
@@ -130,7 +130,7 @@ class ColorScheme:
         names = [scheme['name'] for scheme in ColorScheme().schemes
                          if not scheme['name'] in excludeSchemes]
 
-        schemeName = SelectionWindow.show(sorted(names),
+        schemeName = rhyton.SelectionWindow.show(sorted(names),
                 message='Choose Color Scheme:')
 
         if not schemeName:
@@ -151,7 +151,7 @@ class ColorScheme:
         Returns:
             dict: Same return as ElementUserText but with key "color" added.
         """
-        keys = ElementUserText.getKeys(guids)
+        keys = rhyton.ElementUserText.getKeys(guids)
         keyColors = ColorScheme().schemes.get(schemeName)
         if not keyColors:
             keyColors = ColorScheme().generate(keys)
@@ -161,13 +161,13 @@ class ColorScheme:
         elif schemeName:
             ColorScheme().update(schemeName, keys)
 
-        objectData = ElementUserText.get(guids, keys=schemeName)
+        objectData = rhyton.ElementUserText.get(guids, keys=schemeName)
         for entry in objectData:
             value = entry.get(schemeName)
             if value:
                 entry['color'] = keyColors[value]
 
-        ElementOverrides.apply(objectData)
+        rhyton.ElementOverrides.apply(objectData)
         return objectData
 
     @staticmethod
@@ -179,16 +179,16 @@ class ColorScheme:
             guids (str): A list of guids
             schemeName (_type_): _description_
         """
-        values = ElementUserText.getValues(guids, fromKeys=schemeName).sort()
-        keyColors = ColorScheme().generate(values, gradient=True)
+        values = rhyton.ElementUserText.getValues(guids, fromKeys=schemeName).sort()
+        keyColors = rhyton.ColorScheme().generate(values, gradient=True)
 
-        objectData = ElementUserText.get(guids, keys=schemeName)
+        objectData = rhyton.ElementUserText.get(guids, keys=schemeName)
         for entry in objectData:
             value = entry.get(schemeName)
             if value:
                 entry['color'] = keyColors[value]
 
-        ElementOverrides.apply(objectData)
+        rhyton.ElementOverrides.apply(objectData)
 
     def generate(self, keys, excludeColors=None, gradient=False):
         """
@@ -217,16 +217,16 @@ class ColorScheme:
             dict: A color scheme
         """
         if not gradient:
-            colors = ColorScheme().getColors(len(keys), excludeColors)
+            colors = rhyton.ColorScheme().getColors(len(keys), excludeColors)
         elif gradient:
-            colorsHSV = ColorRange(
+            colorsHSV = rhyton.ColorRange(
                     len(keys), min=gradient[0], max=gradient[1]).getHSV()
             colors = []
             for hsv in colorsHSV:
                 rgb = Color.HSVtoRGB(hsv)
                 colors.append(Color.RGBtoHEX(rgb))
 
-        keyColors = {}
+        keyColors = dict()
         for value, color in zip(sorted(keys), colors):
             keyColors[value] = color
 
@@ -273,7 +273,7 @@ class ColorScheme:
             schemeName (str): The name of the color scheme
             keyValues (dict): The keys and colors associated with the name
         """
-        scheme = {}
+        scheme = dict()
         scheme[schemeName] = keyValues
         self.schemes.update(scheme)
         DocumentConfigStorage().set(self.flag, self.schemes)
@@ -329,3 +329,58 @@ class ColorScheme:
 
         colors = random.sample(availableColors, count)
         return colors
+
+
+class ColorRange:
+    """
+    Class for working with color ranges.
+    """
+    def __init__(self, count, min=0, max=100):
+        """
+        Inits a new ColorRange instance.
+
+        Accepted values::
+
+            0 <= min < 100
+            1 < max <= 100
+            count < max - min
+        """
+        if 0 <= min and min < 100:
+            self.min = min
+        else:
+            return None
+        
+        if 1 < max and max <= 100:
+            self.max = max
+        else:
+            return None
+            
+        if count < max - min:
+            self.count = count
+        else:
+            return None
+
+        self.range = max - min
+
+        if not self.count <= self.range:
+            print('Count bigger than range.')
+            return None
+
+    def getHSV(self):
+        """
+        Gets a list of colors in hsv format.
+
+        Returns:
+            list: A list of hsv colors
+        """
+        hsv = []
+        for i in [
+                x * 0.01 for x in range(
+                                        self.min,
+                                        self.max,
+                                            (self.range / self.count
+                                            )
+                                        )
+                                    ]:
+            hsv.append((i, 0.5, 0.9))
+        return hsv
