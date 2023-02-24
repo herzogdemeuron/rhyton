@@ -8,7 +8,7 @@ from Rhino.Geometry import Line
 
 from collections import defaultdict
 
-from rhyton.utils import Key, Value
+from rhyton.utils import Key, Value, toList
 from rhyton.color import Color
 
 
@@ -54,8 +54,7 @@ class ElementOverrides:
 
         for override in overrides:
             guids = override['guid']
-            if not type(guid) == list:
-                guids = [guid]
+            guids = toList(guids)
             
             for guid in guids:
                 original = {}
@@ -131,10 +130,7 @@ class TextDot:
         Returns:
             list: A list of the newly added text dots.
         """
-        if not type(data) == list:
-            data = [data]
-
-        textDots = []
+        data = toList(data)
         for dot in data:
             bBox = rs.BoundingBox(dot['guid'])
             point = Line(bBox[0], bBox[6]).PointAt(0.5)
@@ -144,9 +140,9 @@ class TextDot:
                     Color.HEXtoRGB(dot['color']))
             rs.TextDotFont(textDot, 'Arial')
             rs.TextDotHeight(textDot, 12.0)
-            textDots.append(textDot)
+            dot['guid'].append(textDot)
 
-        return textDots
+        return data
 
 
 class AffectedElements:
@@ -182,8 +178,7 @@ class AffectedElements:
         Args:
             guids (str): A single or a list of Rhino object ids.
         """
-        if not type(guids) == list:
-            guids = [guids]
+        guids = toList(guids)
 
         existing = DocumentConfigStorage().get(
                 flag, defaultdict())
@@ -282,8 +277,7 @@ class ElementUserText:
         Args:
             data (list(dict)): A list of dictionaries describing the 
         """
-        if not type(data) == list:
-            data = [data]
+        data = toList(data)
 
         guids =  set()
         for entry in data:
@@ -338,22 +332,31 @@ class ElementUserText:
         Args:
             guids (str): A list of Rhino objects ids.
         """
+        guids = toList(guids)
+
         return (rs.GetUserText(guid) for guid in guids)
     
     @staticmethod
-    def getValues(guids):
+    def getValues(guids, fromKeys=[]):
         """
         Gets a complete set of user text values from given objects.
 
         Args:
             guids (str): A list of Rhino objects ids.
         """
+        guids = toList(guids)
+
         values = set()
         for guid in guids:
-            keys = rs.GetUserText(guid)
-            if keys:
-                for key in keys:
+            if fromKeys:
+                fromKeys = toList(fromKeys)
+                for key in fromKeys:
                     values.add(rs.GetUserText(guid, key))
+            else:
+                keys = rs.GetUserText(guid)
+                if keys:
+                    for key in keys:
+                        values.add(rs.GetUserText(guid, key))
         
         return values
 
@@ -362,14 +365,35 @@ class Group:
 
     @staticmethod
     def create(guids, groupName):
+        """
+        Creates a new group with given name and adds given objects to it.
+        The groupname will be expanded to prevent ambiguity.
+
+        Args:
+            guids (str): A list or single Rhino object id.
+            groupName (str): The basename of the group.
+        """
+        import uuid
+        groupName = "_".join(['rhyton', groupName, str(uuid.uuid1())])
         rs.AddGroup(groupName)
         rs.AddObjectsToGroup(guids, groupName)
+        return groupName
 
     @staticmethod
     def dissolve(guids):
+        """
+        Ungroups the guids' groups and then deletes the group definition.
+        Delete all text dots among the guids in the process.
+
+        Args:
+            guids (str): A list or a single Rhino object id.
+        """
+        guids = toList(guids)
         groupNames = set()
         for guid in guids:
             groupNames.add(rs.ObjectTopGroup(guid))
+            if rs.ObjectType(guid) == 8192:
+                rs.DeleteObject(guid)
         
         for group in groupNames:
             rs.DeleteGroup(group)

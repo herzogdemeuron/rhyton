@@ -149,7 +149,7 @@ class ColorScheme:
             schemeName (string): The name of the color scheme
 
         Returns:
-            dict: The applied and updated color scheme
+            dict: Same return as ElementUserText but with key "color" added.
         """
         keys = ElementUserText.getKeys(guids)
         keyColors = ColorScheme().schemes.get(schemeName)
@@ -160,6 +160,27 @@ class ColorScheme:
             ColorScheme().save(schemeName, keyColors)
         elif schemeName:
             ColorScheme().update(schemeName, keys)
+
+        objectData = ElementUserText.get(guids, keys=schemeName)
+        for entry in objectData:
+            value = entry.get(schemeName)
+            if value:
+                entry['color'] = keyColors[value]
+
+        ElementOverrides.apply(objectData)
+        return objectData
+
+    @staticmethod
+    def applyGradient(guids, schemeName):
+        """
+        Applies a rhyton color gradient to given objects.
+
+        Args:
+            guids (str): A list of guids
+            schemeName (_type_): _description_
+        """
+        values = ElementUserText.getValues(guids, fromKeys=schemeName).sort()
+        keyColors = ColorScheme().generate(values, gradient=True)
 
         objectData = ElementUserText.get(guids, keys=schemeName)
         for entry in objectData:
