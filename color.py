@@ -25,8 +25,10 @@ class Color:
     def HSVtoRGB(hsv):
         """
         Convert a color from hsv to rgb.
+
         Args:
             hsv (tuple): A color in hsv format.
+
         Returns:
             tuple: A color in rgb format
         """
@@ -34,14 +36,25 @@ class Color:
 
     @staticmethod
     def RGBtoHEX(rgb):
+        """
+        Convert an RGB color to HEX.
+
+        Args:
+            rgb (tuple): The RGB color.
+
+        Returns:
+            str: The HEX color
+        """
         return '%02x%02x%02x' % rgb
 
     @staticmethod
     def HEXtoRGB(hex):
         """
         Converts a hex color string to rgb.
+
         Args:
             hex (sting): The hex color
+
         Returns:
             tuple: The rgb color
         """
@@ -65,7 +78,7 @@ class ColorScheme:
                             '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4',
                             '#009688', '#4CAF50', '#8BC34A', '#CDDC39',
                             '#FFEB3B', '#FFC107', '#FF9800', '#FF5722',
-                            '#795548', '#9E9E9E', '#607D8B'
+                            '#795548', '#607D8B'
                             ]
         self.additionalColors = [
                             '#D32F2F', '#C2185B', '#7B1FA2', '#512DA8',
@@ -151,7 +164,7 @@ class ColorScheme:
         Returns:
             dict: Same return as ElementUserText but with key "color" added.
         """
-        keys = rhyton.ElementUserText.getKeys(guids)
+        keys = rhyton.ElementUserText.getValues(guids, keys=schemeName)
         keyColors = ColorScheme().schemes.get(schemeName)
         if not keyColors:
             keyColors = ColorScheme().generate(keys)
@@ -166,6 +179,9 @@ class ColorScheme:
             value = entry.get(schemeName)
             if value:
                 entry['color'] = keyColors[value]
+            else:
+                entry['color'] = '#FFFFFF'
+                entry[schemeName] = 'None'
 
         rhyton.ElementOverrides.apply(objectData)
         return objectData
@@ -256,7 +272,7 @@ class ColorScheme:
             
             self.schemes[schemeName].update(tempKeyColors)
 
-        DocumentConfigStorage().set(self.flag, self.schemes)
+        DocumentConfigStorage().save(self.flag, self.schemes)
 
     def save(self, schemeName, keyValues):
         """
@@ -276,7 +292,7 @@ class ColorScheme:
         scheme = dict()
         scheme[schemeName] = keyValues
         self.schemes.update(scheme)
-        DocumentConfigStorage().set(self.flag, self.schemes)
+        DocumentConfigStorage().save(self.flag, self.schemes)
 
     def delete(self, schemeName):
         """
@@ -288,7 +304,7 @@ class ColorScheme:
         if schemeName in self.schemes:
             del self.schemes[schemeName]
         
-        DocumentConfigStorage().set(self.flag, self.schemes)
+        DocumentConfigStorage().save(self.flag, self.schemes)
 
     def getColors(self, count, excludeColors=[]):
         """

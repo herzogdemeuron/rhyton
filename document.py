@@ -57,13 +57,15 @@ class ElementOverrides:
             guids = rhyton.toList(guids)
             
             for guid in guids:
+                color = rs.ObjectColor(guid)
+                color = tuple([color[0], color[1], color[2]])
                 original = dict()
+                original['color'] = rhyton.Color.RGBtoHEX(color)
                 original['source'] = rs.ObjectColorSource(guid)
-                original['color'] = rs.ObjectColor(guid)
                 originalColors[guid] = original
                 rs.ObjectColor(
                         guid,
-                        rhyton.Color.HEXtoRGB(override['color']))
+                        rhyton.Color.HEXtoRGB(override.get('color', '#FFFFFF')))
 
         AffectedElements.save('rhyton.originalColors', originalColors)
 
@@ -77,10 +79,16 @@ class ElementOverrides:
         Args:
             guids (str): The ids of the objects.
         """
-        originalColors = DocumentConfigStorage().get('rhyton.originalColors')
+        originalColors = DocumentConfigStorage().get(
+                'rhyton.originalColors', defaultdict())
         for guid in guids:
-            rs.ObjectColor(guid, originalColors[guid]['color'])
-            rs.ObjectColorSource(guid, originalColors[guid]['source'])
+            hexColor = originalColors.get(guid, dict()).get('color')
+            if hexColor:
+                rgbColor = rhyton.Color.HEXtoRGB(hexColor)
+                rs.ObjectColor(guid, rgbColor)
+
+            rs.ObjectColorSource(guid, originalColors.get(
+                    guid, dict()).get('source', 0))
 
         AffectedElements.remove('rhyton.originalColors', guids)
 
@@ -90,7 +98,7 @@ class TextDot:
     Class for handling Rhino text dot objects.
     """
     @staticmethod
-    def add(data):
+    def add(data, key, valueKey, showKey=False):
         """
         Adds a new text dot to the document.
         The textdot location is the center of the bounding box of given guid(s).
@@ -131,17 +139,30 @@ class TextDot:
             list: A list of the newly added text dots.
         """
         data = rhyton.toList(data)
+        textDots = {}
         for dot in data:
             bBox = rs.BoundingBox(dot['guid'])
+            try:
+                value = ElementUserText.aggregate(dot['guid'], valueKey)
+                value = rhyton.formatNumber(value)
+            except:
+                value = len(dot['guid'])
+
+            text = "{} {}: {}".format(key, dot.get(key, 'None'), value)
+            if not showKey:
+                text = text.replace(key, '').strip()
+
             point = Line(bBox[0], bBox[6]).PointAt(0.5)
-            textDot = rs.AddTextDot(dot['value'], point)
+            textDot = rs.AddTextDot(text, point)
             rs.ObjectColor(
                     textDot,
-                    rhyton.Color.HEXtoRGB(dot['color']))
+                    rhyton.Color.HEXtoRGB(dot.get('color', '#FFFFFF')))
             rs.TextDotFont(textDot, 'Arial')
             rs.TextDotHeight(textDot, 12.0)
-            dot['guid'].append(textDot)
+            dot['guid'].append(str(textDot))
+            textDots[str(textDot)] = 1
 
+        AffectedElements.save('rhyton.textdots', textDots)
         return data
 
 
@@ -197,10 +218,11 @@ class DocumentConfigStorage:
         self.storageName = 'RHYTON_CONFIG'
         self.storage = dict()
         raw = rs.GetDocumentUserText(key=self.storageName)
-        if raw:
+        if raw and raw != ' ':
             self.storage = json.loads(raw)
+        else:
+            print('No configuration available.')
 
-    @staticmethod
     def save(self, flag, data):
         """
         Saves the given data under the provided flag in the Rhino document user text.
@@ -212,7 +234,7 @@ class DocumentConfigStorage:
             data (mixed): The data to store.
         """
         self.storage[flag] = data
-        self.storage = {(k, v) for k, v in self.storage.iteritems() if v}
+        self.storage = dict((k, v) for k, v in self.storage.iteritems() if v)
         raw = json.dumps(self.storage, sort_keys=True, ensure_ascii=False)
         rs.SetDocumentUserText(self.storageName, raw)
     
@@ -316,50 +338,63 @@ class ElementUserText:
             if not keys: 
                 keys = rs.GetUserText(guid)
 
+            keys = rhyton.toList(keys)
             entry = dict()
             entry['guid'] = guid
             for key in keys:
                 entry[key] = rs.GetUserText(guid, key)
                 data.append(entry)
-        
         return data
     
     @staticmethod
     def getKeys(guids):
         """
-        Gets a complete set of user text keys from given objects.
+        Gets a complete set of unique user text keys from given objects.
 
         Args:
             guids (str): A list of Rhino objects ids.
         """
         guids = rhyton.toList(guids)
+        keys = set()
+        for guid in guids:
+            for key in rs.GetUserText(guid):
+                keys.add(key)
 
-        return (rs.GetUserText(guid) for guid in guids)
+        return keys
     
     @staticmethod
-    def getValues(guids, fromKeys=[]):
+    def getValues(guids, keys=[]):
         """
-        Gets a complete set of user text values from given objects.
+        Gets a complete set of unique user text values from given objects.
 
         Args:
             guids (str): A list of Rhino objects ids.
         """
         guids = rhyton.toList(guids)
-
         values = set()
         for guid in guids:
-            if fromKeys:
-                fromKeys = rhyton.toList(fromKeys)
-                for key in fromKeys:
+            if keys:
+                for key in rhyton.toList(keys):
                     values.add(rs.GetUserText(guid, key))
             else:
-                keys = rs.GetUserText(guid)
-                if keys:
-                    for key in keys:
+                elementKeys = rs.GetUserText(guid)
+                if elementKeys:
+                    for key in elementKeys:
                         values.add(rs.GetUserText(guid, key))
         
         return values
-
+    
+    @staticmethod
+    def aggregate(guids, keys=[]):
+        keys = rhyton.toList(keys)
+        values = []
+        for guid in guids:
+            for key in keys:
+                value = rs.GetUserText(guid, key)
+                if value:
+                    values.append(float(value))
+        
+        return sum(values)
 
 class Group:
 

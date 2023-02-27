@@ -35,6 +35,7 @@ def GetBreps(filterByTypes=[8, 16, 1073741824]):
 
         8 = Surface
         16 = Polysurface
+        8192 = Text Dot
         1073741824 = Extrusion
 
     Returns:
@@ -44,7 +45,7 @@ def GetBreps(filterByTypes=[8, 16, 1073741824]):
     if not selection:
         return None
     
-    breps = [b for b in selection if rs.ObjectType(b) in filterByTypes]
+    breps = [str(b) for b in selection if rs.ObjectType(b) in filterByTypes]
     return breps
 
 def toList(data):
@@ -93,3 +94,15 @@ def groupGuidsBy(data, keys):
         result.append(newDict)
 
     return result
+
+def formatNumber(number):
+    """
+    Formats a number.
+
+    Args:
+        number (float): The number to format.
+
+    Returns:
+        float: The formatted number.
+    """
+    return number

@@ -6,6 +6,7 @@ import os
 import rhinoscriptsyntax as rs
 import export
 import rhyton
+from collections import defaultdict 
 
 
 class Visualization:
@@ -13,21 +14,37 @@ class Visualization:
     @staticmethod
     def byGroup():
         breps = rhyton.GetBreps()
+        if not breps:
+            return
+        
         keys = rhyton.ElementUserText.getKeys(breps)
-        keys.add("grand_total")
-        selectedKey = SelectionWindow.show(keys, message='Select Parameter to group by:')
+        keys.add("bl_grand_total")
+        selectedKey = SelectionWindow.show(keys, message='Select Parameter to Group By:')
         if not selectedKey:
             return
         
+        keys.remove("bl_grand_total")
+        selectedValue = SelectionWindow.show(keys, message='Select Parameter to Summarize')
+        if not selectedValue:
+            return
+        
+        rs.EnableRedraw(False)
         objectData = rhyton.ColorScheme.apply(breps, selectedKey)
         objectData = rhyton.groupGuidsBy(objectData, [selectedKey, 'color'])
-        objectData = rhyton.TextDot.add(objectData)
+        objectData = rhyton.TextDot.add(
+                objectData, selectedKey, selectedValue)
         for item in objectData:
             rhyton.Group.create(item['guid'], item[selectedKey])
+        
+        rs.UnselectAllObjects()
+        rs.EnableRedraw(True)
 
     @staticmethod
     def byValue():
         breps = rhyton.GetBreps()
+        if not breps:
+            return
+    
         keys = rhyton.ElementUserText.getKeys(breps)
         selectedKey = SelectionWindow.show(keys, message='Select Parameter to visualize:')
         if not selectedKey:
@@ -42,25 +59,44 @@ class Visualization:
     @staticmethod
     def reset():
         preSelection = rs.SelectedObjects()
+        resetAll = 'select'
         if not preSelection:
             choices = {
-                    "Yes, reset all.": True, "No wait, let me select!": False}
+                    "Yes, reset all.": 'reset',
+                    "No wait, let me select!": 'select'}
             resetAll = SelectionWindow.show(
                     choices, message='Reset all visualizations?')
 
-        if resetAll:
-            data = rhyton.DocumentConfigStorage().get('rhyton.originalColors')
-            guids = set(d['guid'] for d in data)
+        rs.EnableRedraw(False)
+        if resetAll == 'reset':
+            data = rhyton.DocumentConfigStorage().get(
+                    'rhyton.originalColors', dict())
+            if not data:
+                print('ERROR: No info about original colors available, select elements and try again.')
+
+            guids = data.keys()
             rhyton.Group.dissolve(guids)
             rhyton.ElementOverrides.clear(guids)
-        elif not resetAll:
-            breps = rhyton.GetBreps()
-            rhyton.Group.dissolve(breps)
+            textDots = rhyton.DocumentConfigStorage().get(
+                    'rhyton.textdots', dict()).keys()
+            rs.DeleteObjects(textDots)
+            rhyton.AffectedElements.remove('rhyton.textdots', textDots)
+        elif resetAll == 'select':
+            breps = rhyton.GetBreps(filterByTypes=[8, 16, 8192, 1073741824])
+            if not breps:
+                return
+            
             rhyton.ElementOverrides.clear(breps)
+            rhyton.Group.dissolve(breps)
+
+        rs.EnableRedraw(True)
     
     @staticmethod
     def export():
         breps = rhyton.GetBreps()
+        if not breps:
+            return
+        
         CSV, JSON = "CSV", "JSON"
         exportMethod = SelectionWindow.show(
                 [CSV, JSON],
