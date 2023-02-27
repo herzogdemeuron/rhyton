@@ -279,15 +279,15 @@ class ElementUserText:
         """
         data = rhyton.toList(data)
 
-        guids =  set()
+        # guids =  set()
         for entry in data:
             guid = entry['guid']
-            guids.add(guid)
+            # guids.add(guid)
             del entry['guid']
             for key, value in entry.items():
                 rs.SetUserText(guid, rhyton.Key(key), rhyton.Value(value))
 
-        AffectedElements.save('rhyton.usertextElements', guids)
+        # AffectedElements.save('rhyton.usertextElements', guids)
 
     @staticmethod
     def get(guids, keys=None):
