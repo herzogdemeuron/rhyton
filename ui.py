@@ -6,25 +6,31 @@ import os
 import rhinoscriptsyntax as rs
 import export
 import rhyton
-from collections import defaultdict 
 
 
 class Visualization:
 
     @staticmethod
     def byGroup():
+        """
+        Visualizes a set of Rhino objects and their user text:
+        The user input 'Parameter to Group By' is used for coloring
+        and grouping objects, as well as for building sub-totals of the
+        user-selected 'Parameter to Summarize'.
+        Places text dots with the value for each group.
+        """
         breps = rhyton.GetBreps()
         if not breps:
             return
         
         keys = rhyton.ElementUserText.getKeys(breps)
-        keys.add("bl_grand_total")
-        selectedKey = SelectionWindow.show(keys, message='Select Parameter to Group By:')
+        selectedKey = SelectionWindow.show(
+                keys, message='Select Parameter to Group By:')
         if not selectedKey:
             return
         
-        keys.remove("bl_grand_total")
-        selectedValue = SelectionWindow.show(keys, message='Select Parameter to Summarize')
+        selectedValue = SelectionWindow.show(
+                keys, message='Select Parameter to Summarize')
         if not selectedValue:
             return
         
@@ -32,9 +38,34 @@ class Visualization:
         objectData = rhyton.ColorScheme.apply(breps, selectedKey)
         objectData = rhyton.groupGuidsBy(objectData, [selectedKey, 'color'])
         objectData = rhyton.TextDot.add(
-                objectData, selectedKey, selectedValue)
+                objectData, selectedValue)
         for item in objectData:
             rhyton.Group.create(item['guid'], item[selectedKey])
+        
+        rs.UnselectAllObjects()
+        rs.EnableRedraw(True)
+
+    @staticmethod
+    def sumTotal():
+        breps = rhyton.GetBreps()
+        if not breps:
+            return
+        
+        keys = rhyton.ElementUserText.getKeys(breps)
+        selectedKey = SelectionWindow.show(
+                keys, message='Select Parameter to Calculate Total:')
+        if not selectedKey:
+            return
+        
+        rs.EnableRedraw(False)
+        objectData = {}
+        objectData['guid'] = breps
+        objectData['color'] = rhyton.ColorScheme().getColors(1)[0]
+        rhyton.ElementOverrides.apply(objectData)
+        objectData = rhyton.TextDot.add(
+                objectData, selectedKey)
+        for item in objectData:
+            rhyton.Group.create(item['guid'])
         
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
@@ -46,11 +77,24 @@ class Visualization:
             return
     
         keys = rhyton.ElementUserText.getKeys(breps)
-        selectedKey = SelectionWindow.show(keys, message='Select Parameter to visualize:')
+        selectedKey = SelectionWindow.show(
+                keys, message='Select Parameter to visualize:')
         if not selectedKey:
             return
         
-        objectData = rhyton.ColorScheme.applyGradient(breps, selectedKey)
+        # reformat color input from 0-100
+        start = rs.GetColor(rhyton.STANDARD_COLOR_1)
+        if not start:
+            return
+        
+
+        # reformat color input from 0-100
+        end = rs.GetColor(rhyton.STANDARD_COLOR_2)
+        if not end:
+            return    
+        
+        objectData = rhyton.ColorScheme.applyGradient(
+                breps, selectedKey, [start, end])
         objectData = rhyton.groupGuidsBy(objectData, [selectedKey, 'color'])
         objectData = rhyton.TextDot.add(objectData)
         for item in objectData:
@@ -67,8 +111,16 @@ class Visualization:
             resetAll = SelectionWindow.show(
                     choices, message='Reset all visualizations?')
 
-        rs.EnableRedraw(False)
-        if resetAll == 'reset':
+        if resetAll == 'select':
+            breps = rhyton.GetBreps(filterByTypes=[8, 16, 8192, 1073741824])
+            if not breps:
+                return
+            
+            rs.EnableRedraw(False)
+            rhyton.ElementOverrides.clear(breps)
+            rhyton.Group.dissolve(breps)
+        elif resetAll == 'reset':
+            rs.EnableRedraw(False)
             data = rhyton.DocumentConfigStorage().get(
                     'rhyton.originalColors', dict())
             if not data:
@@ -80,14 +132,7 @@ class Visualization:
             textDots = rhyton.DocumentConfigStorage().get(
                     'rhyton.textdots', dict()).keys()
             rs.DeleteObjects(textDots)
-            rhyton.AffectedElements.remove('rhyton.textdots', textDots)
-        elif resetAll == 'select':
-            breps = rhyton.GetBreps(filterByTypes=[8, 16, 8192, 1073741824])
-            if not breps:
-                return
-            
-            rhyton.ElementOverrides.clear(breps)
-            rhyton.Group.dissolve(breps)
+            rhyton.DocumentConfigStorage().save('rhyton.textdots', None)
 
         rs.EnableRedraw(True)
     
@@ -144,7 +189,7 @@ class SelectionWindow:
         if not type(options) == dict:
             options = dict((i, i) for i in options)
 
-        res = rs.ListBox(options.keys(), message)
+        res = rs.ListBox(options.keys(), message, default=options.keys()[0])
         if res:
             return options[res]
         

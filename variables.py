@@ -5,3 +5,6 @@ GRADIENTS = 'Gradients'
 NAME = 'name'
 SCHEME_NAME = 'schemeName'
 DATA = 'data'
+GUID = 'guid'
+STANDARD_COLOR_1 = (200,200,255)
+STANDARD_COLOR_2 = (50,50,255)

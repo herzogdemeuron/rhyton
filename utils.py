@@ -3,6 +3,28 @@ Module for general utily functions.
 """
 import rhinoscriptsyntax as rs
 
+
+def GetBreps(filterByTypes=[8, 16, 1073741824]):
+    """
+    Gets the currently selected Rhino objects or asks the user to go get some.
+    
+    Allowed objects are by default::
+
+        8 = Surface
+        16 = Polysurface
+        8192 = Text Dot
+        1073741824 = Extrusion
+
+    Returns:
+        list: A list of Rhino objects ids.
+    """
+    selection = rs.GetObjects(preselect=True, select=True)
+    if not selection:
+        return None
+    
+    breps = [str(b) for b in selection if rs.ObjectType(b) in filterByTypes]
+    return breps
+
 def Key(key):
     """
     Sanitize given key to meet rhyton standards.
@@ -27,26 +49,28 @@ def Value(value):
     """
     return str(value).replace('_', " ").title()
 
-def GetBreps(filterByTypes=[8, 16, 1073741824]):
+def displayKey(key, rmPrefix=None):
     """
-    Gets the currently selected Rhino objects or asks the user to go get some.
-    
-    Allowed objects are by default::
+    Formats an SQL-style key ('snake_case') for display.
+    Optionally removes a prefix.
 
-        8 = Surface
-        16 = Polysurface
-        8192 = Text Dot
-        1073741824 = Extrusion
+    Example::
+
+        displayKey("xyz_some_area", prefix="xyz_")
+        >>> "Some Area"
+
+    Args:
+        key (str): The text to format.
+        rmPrefix (str, optional): A prefix to remove. Defaults to None.
 
     Returns:
-        list: A list of Rhino objects ids.
+        _type_: _description_
     """
-    selection = rs.GetObjects(preselect=True, select=True)
-    if not selection:
-        return None
+    if rmPrefix:
+        if key.startswith(rmPrefix):
+            key = key[len(rmPrefix):]
     
-    breps = [str(b) for b in selection if rs.ObjectType(b) in filterByTypes]
-    return breps
+    return str(key).replace('_', " ").title()
 
 def toList(data):
     """
@@ -78,6 +102,7 @@ def groupGuidsBy(data, keys):
         keys (list[str]): The list of keys to group by.
     """
     mergedDict = dict()
+    keys = toList(keys)
     
     for d in data:
         values = tuple(d[key] for key in keys)
@@ -105,4 +130,21 @@ def formatNumber(number):
     Returns:
         float: The formatted number.
     """
-    return number
+    return round(number, 2)
+
+def removePrefix(string, prefix):
+    """
+    Removes a prefix from a string.
+    Python 2.7 substitute for 'string.removeprefix(str)'
+
+    Args:
+        string (str): The text to remove the prefix from.
+        prefix (str): The prefix to remove from the string.
+
+    Returns:
+        str: The resulting string.
+    """
+    if string.startswith(prefix):
+        string = string[len(prefix):]
+    
+    return string

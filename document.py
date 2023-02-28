@@ -50,6 +50,7 @@ class ElementOverrides:
         Args:
             overrides (list(dict)): A dictionary or a list of dictionaries.
         """
+        overrides = rhyton.toList(overrides)
         originalColors = dict()
 
         for override in overrides:
@@ -98,7 +99,7 @@ class TextDot:
     Class for handling Rhino text dot objects.
     """
     @staticmethod
-    def add(data, key, valueKey, showKey=False):
+    def add(data, valueKey):
         """
         Adds a new text dot to the document.
         The textdot location is the center of the bounding box of given guid(s).
@@ -113,12 +114,10 @@ class TextDot:
                 [
                     {
                         "guid": [<guid1>, <guid2>],
-                        "value": <value1>,
                         "color": <color1>
                     },
                     {
                         "guid": <guid3>,
-                        "value": <value2>,
                         "color": <color2>
                     }
                 ])
@@ -128,15 +127,16 @@ class TextDot:
             TextDot.add(
                     {
                         "guid": <guid>,
-                        "value": <display value>,
                         "color": <display color>
                     })
 
         Args:
             dict (list(dict)): A dictionary or list of dictionaires.
+            valueKey (str): The key to aggregate or count values.
+            prefix (str, optional): The text to display before the value.
 
         Returns:
-            list: A list of the newly added text dots.
+            list: The input list of dicts with the guids of the text dots added.
         """
         data = rhyton.toList(data)
         textDots = {}
@@ -148,12 +148,13 @@ class TextDot:
             except:
                 value = len(dot['guid'])
 
-            text = "{} {}: {}".format(key, dot.get(key, 'None'), value)
-            if not showKey:
-                text = text.replace(key, '').strip()
+            # textValues = [prefix, value]
+            # if showGroupName:
+            #     textValues.insert(1, dot[groupKey])
 
+            # text = " ".join(textValues).strip()
             point = Line(bBox[0], bBox[6]).PointAt(0.5)
-            textDot = rs.AddTextDot(text, point)
+            textDot = rs.AddTextDot(value, point)
             rs.ObjectColor(
                     textDot,
                     rhyton.Color.HEXtoRGB(dot.get('color', '#FFFFFF')))
@@ -396,10 +397,11 @@ class ElementUserText:
         
         return sum(values)
 
+
 class Group:
 
     @staticmethod
-    def create(guids, groupName):
+    def create(guids, groupName=''):
         """
         Creates a new group with given name and adds given objects to it.
         The groupname will be expanded to prevent ambiguity.

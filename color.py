@@ -171,8 +171,9 @@ class ColorScheme:
             if not keyColors:
                 return None
             ColorScheme().save(schemeName, keyColors)
-        elif schemeName:
+        else:
             ColorScheme().update(schemeName, keys)
+            keyColors = ColorScheme().schemes.get(schemeName)
 
         objectData = rhyton.ElementUserText.get(guids, keys=schemeName)
         for entry in objectData:
@@ -187,7 +188,7 @@ class ColorScheme:
         return objectData
 
     @staticmethod
-    def applyGradient(guids, schemeName):
+    def applyGradient(guids, schemeName, gradient):
         """
         Applies a rhyton color gradient to given objects.
 
@@ -195,8 +196,9 @@ class ColorScheme:
             guids (str): A list of guids
             schemeName (_type_): _description_
         """
-        values = rhyton.ElementUserText.getValues(guids, fromKeys=schemeName).sort()
-        keyColors = rhyton.ColorScheme().generate(values, gradient=True)
+        rawValues = rhyton.ElementUserText.getValues(guids, keys=schemeName)
+        values = sorted(rawValues)
+        keyColors = rhyton.ColorScheme().generate(values, gradient=gradient)
 
         objectData = rhyton.ElementUserText.get(guids, keys=schemeName)
         for entry in objectData:
