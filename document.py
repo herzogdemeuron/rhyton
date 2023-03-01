@@ -141,6 +141,7 @@ class TextDot:
         data = rhyton.toList(data)
         textDots = {}
         for dot in data:
+            dot['guid'] = rhyton.toList(dot['guid'])
             bBox = rs.BoundingBox(dot['guid'])
             try:
                 value = ElementUserText.aggregate(dot['guid'], valueKey)

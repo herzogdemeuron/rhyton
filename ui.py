@@ -83,22 +83,27 @@ class Visualization:
             return
         
         # reformat color input from 0-100
-        start = rs.GetColor(rhyton.STANDARD_COLOR_1)
-        if not start:
+        color = rs.GetColor(rhyton.STANDARD_COLOR_1)
+        if not color:
             return
         
-
+        colorStart = [color[0], color[1], color[2]]
+        
         # reformat color input from 0-100
-        end = rs.GetColor(rhyton.STANDARD_COLOR_2)
-        if not end:
+        color = rs.GetColor(rhyton.STANDARD_COLOR_2)
+        if not color:
             return    
         
+        colorEnd = [color[0], color[1], color[2]]
+
+        rs.EnableRedraw(False)
         objectData = rhyton.ColorScheme.applyGradient(
-                breps, selectedKey, [start, end])
-        objectData = rhyton.groupGuidsBy(objectData, [selectedKey, 'color'])
-        objectData = rhyton.TextDot.add(objectData)
+                breps, selectedKey, [colorStart, colorEnd])
+        objectData = rhyton.TextDot.add(objectData, selectedKey)
         for item in objectData:
-            rhyton.Group.create(item['guid'], item[selectedKey])
+            rhyton.Group.create(item['guid'])
+
+        rs.EnableRedraw(True)
     
     @staticmethod
     def reset():

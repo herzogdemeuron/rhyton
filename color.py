@@ -4,6 +4,8 @@ Module for color operations.
 import colorsys
 import os
 import json
+from math import ceil
+from itertools import repeat
 import rhyton
 from rhyton.document import DocumentConfigStorage
 from collections import defaultdict
@@ -193,20 +195,25 @@ class ColorScheme:
         Applies a rhyton color gradient to given objects.
 
         Args:
-            guids (str): A list of guids
-            schemeName (_type_): _description_
+            guids (str): A list of guids.
+            schemeName (str): The name of the color scheme.
+            gradient (list): Two RGB colors: [start, end]
         """
         rawValues = rhyton.ElementUserText.getValues(guids, keys=schemeName)
         values = sorted(rawValues)
+        print(values)
         keyColors = rhyton.ColorScheme().generate(values, gradient=gradient)
-
+        print(keyColors)
         objectData = rhyton.ElementUserText.get(guids, keys=schemeName)
+        print(objectData)
+
         for entry in objectData:
             value = entry.get(schemeName)
             if value:
                 entry['color'] = keyColors[value]
 
         rhyton.ElementOverrides.apply(objectData)
+        return objectData
 
     def generate(self, keys, excludeColors=None, gradient=False):
         """
@@ -235,14 +242,11 @@ class ColorScheme:
             dict: A color scheme
         """
         if not gradient:
-            colors = rhyton.ColorScheme().getColors(len(keys), excludeColors)
+            colors = ColorScheme().getColors(len(keys), excludeColors)
         elif gradient:
-            colorsHSV = rhyton.ColorRange(
-                    len(keys), min=gradient[0], max=gradient[1]).getHSV()
-            colors = []
-            for hsv in colorsHSV:
-                rgb = Color.HSVtoRGB(hsv)
-                colors.append(Color.RGBtoHEX(rgb))
+            colorsRGB = Gradient.betweenRgbColors(len(keys), gradient[0], gradient[1])
+            colors = [Color.RGBtoHEX(rgb) for rgb in colorsRGB]
+            print(colors)
 
         keyColors = dict()
         for value, color in zip(sorted(keys), colors):
@@ -402,3 +406,38 @@ class ColorRange:
                                     ]:
             hsv.append((i, 0.5, 0.9))
         return hsv
+
+
+class Gradient:
+
+    @classmethod
+    def betweenRgbColors(cls, count, start, end):
+        """
+        Create a range of colors by interpolating the individual r, g, b values.
+
+        Args:
+            count (int): The total amout of colors to return.
+            start (tuple): The start color.
+            end (tuple): The end color.
+        """
+        rangeR = cls._getRange(start[0], end[0], count)
+        rangeG = cls._getRange(start[1], end[1], count)
+        rangeB = cls._getRange(start[2], end[2], count)
+        return tuple(zip(rangeR, rangeG, rangeB))
+
+    @classmethod
+    def _getRange(cls, start, end, count):
+        if start == end:
+            print(repeat(start, count))
+            return repeat(start, count)
+
+        # step = int(ceil((end - start) / count))
+        step = (end - start) / count
+        increments = []
+        for i in range(count):
+            increments.append(int(start))
+            start += step
+
+        print(increments)
+        return increments
+        # return [int(x) for x in range(start, end, step)]
