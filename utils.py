@@ -1,53 +1,40 @@
 """
 Module for general utily functions.
 """
-import rhinoscriptsyntax as rs
+# rhyton imports
+from main import Rhyton
 
 
-def GetBreps(filterByTypes=[8, 16, 1073741824]):
+class Format(Rhyton):
     """
-    Gets the currently selected Rhino objects or asks the user to go get some.
-    
-    Allowed objects are by default::
-
-        8 = Surface
-        16 = Polysurface
-        8192 = Text Dot
-        1073741824 = Extrusion
-
-    Returns:
-        list: A list of Rhino objects ids.
+    Class for formatting keys and values to meet sql-standards
     """
-    selection = rs.GetObjects(preselect=True, select=True)
-    if not selection:
-        return None
-    
-    breps = [str(b) for b in selection if rs.ObjectType(b) in filterByTypes]
-    return breps
+    @classmethod
+    def key(cls, key):
+        """
+        Sanitize given key to meet rhyton standards.
 
-def Key(key):
-    """
-    Sanitize given key to meet rhyton standards.
+        Args:
+            key (str): The key to clean.
 
-    Args:
-        key (str): The key to clean.
+        Returns:
+            str: The sanitized key.
+        """
+        return key.replace(cls.WHITESPACE, cls.DELIMITER).lower()
 
-    Returns:
-        str: The sanitized key.
-    """
-    return key.replace(' ', "_").lower()
+    @classmethod
+    def value(cls, value):
+        """
+        Sanitize given value to meet rhyton standards.
 
-def Value(value):
-    """
-    Sanitize given value to meet rhyton standards.
+        Args:
+            value (str): The value to clean.
 
-    Args:
-        value (str): The value to clean.
+        Returns:
+            str: The sanitized value.
+        """
+        return str(value).replace(cls.DELIMITER, cls.WHITESPACE).title()
 
-    Returns:
-        str: The sanitized value.
-    """
-    return str(value).replace('_', " ").title()
 
 def displayKey(key, rmPrefix=None):
     """
@@ -72,6 +59,7 @@ def displayKey(key, rmPrefix=None):
     
     return str(key).replace('_', " ").title()
 
+
 def toList(data):
     """
     Ensures that the input data is a list.
@@ -87,6 +75,7 @@ def toList(data):
     else:
         return [data]
     
+
 def groupGuidsBy(data, keys):
     """
     Re-organizes a list of dictionaies by given key.
@@ -108,19 +97,20 @@ def groupGuidsBy(data, keys):
         values = tuple(d[key] for key in keys)
         
         if values not in mergedDict:
-            mergedDict[values] = {"guid": []}
+            mergedDict[values] = {Rhyton.GUID: []}
         
-        mergedDict[values]["guid"].append(d["guid"])
+        mergedDict[values][Rhyton.GUID].append(d[Rhyton.GUID])
         
     result = []
     for k, v in mergedDict.items():
         newDict = dict(zip(keys, k))
-        newDict["guid"] = v["guid"]
+        newDict[Rhyton.GUID] = v[Rhyton.GUID]
         result.append(newDict)
 
     return result
 
-def formatNumber(number):
+
+def formatNumber(number, key):
     """
     Formats a number.
 
@@ -130,7 +120,16 @@ def formatNumber(number):
     Returns:
         float: The formatted number.
     """
-    return round(number, 2)
+    suffix = Rhyton.UNIT_SUFFIX
+    if 'area' in key.lower():
+        suffix = Rhyton.UNIT_SUFFIX + '2'
+
+    if 'volume' in key.lower():
+        suffix = Rhyton.UNIT_SUFFIX + '3'
+
+    print(Rhyton.ROUNDING_DECIMALS)
+    return str(round(number, Rhyton.ROUNDING_DECIMALS)) + suffix
+
 
 def removePrefix(string, prefix):
     """

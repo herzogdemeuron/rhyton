@@ -18,7 +18,7 @@ class ExportBase:
 
         return file
     
-class CSV(ExportBase):
+class CsvExporter(ExportBase):
     
     @classmethod
     def write(cls, data, file=None):
@@ -57,7 +57,7 @@ class CSV(ExportBase):
             return file
 
 
-class JSON(ExportBase):
+class JsonExporter(ExportBase):
     
     @classmethod
     def write(cls, file, data):

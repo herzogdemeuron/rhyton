@@ -2,16 +2,25 @@
 Module for interacting with the user.
 Provides ready-made functions that can be used by buttons in any extension.
 """
+# python standard imports
 import os
+
+# rhino imports
 import rhinoscriptsyntax as rs
-import export
-import rhyton
 
+# rhyton imports
+from main import Rhyton
+from export import CsvExporter, JsonExporter
+from document import GetBreps, ElementUserText, Group, TextDot
+from document import DocumentConfigStorage, ElementOverrides
+from color import ColorScheme
+from utils import groupGuidsBy, Format
 
-class Visualization:
+class Visualize(Rhyton):
+    def __init__(self, extensionName):
+        super(Visualize, self).__init__(extensionName)
 
-    @staticmethod
-    def byGroup():
+    def byGroup(self):
         """
         Visualizes a set of Rhino objects and their user text:
         The user input 'Parameter to Group By' is used for coloring
@@ -19,11 +28,11 @@ class Visualization:
         user-selected 'Parameter to Summarize'.
         Places text dots with the value for each group.
         """
-        breps = rhyton.GetBreps()
+        breps = GetBreps()
         if not breps:
             return
         
-        keys = rhyton.ElementUserText.getKeys(breps)
+        keys = ElementUserText.getKeys(breps)
         selectedKey = SelectionWindow.show(
                 keys, message='Select Parameter to Group By:')
         if not selectedKey:
@@ -35,23 +44,21 @@ class Visualization:
             return
         
         rs.EnableRedraw(False)
-        objectData = rhyton.ColorScheme.apply(breps, selectedKey)
-        objectData = rhyton.groupGuidsBy(objectData, [selectedKey, 'color'])
-        objectData = rhyton.TextDot.add(
-                objectData, selectedValue)
+        objectData = ColorScheme.apply(breps, selectedKey)
+        objectData = groupGuidsBy(objectData, [selectedKey, self.COLOR])
+        objectData = TextDot.add(objectData, selectedValue)
         for item in objectData:
-            rhyton.Group.create(item['guid'], item[selectedKey])
+            Group.create(item[self.GUID], item[selectedKey])
         
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
 
-    @staticmethod
-    def sumTotal():
-        breps = rhyton.GetBreps()
+    def sumTotal(self):
+        breps = GetBreps()
         if not breps:
             return
         
-        keys = rhyton.ElementUserText.getKeys(breps)
+        keys = ElementUserText.getKeys(breps)
         selectedKey = SelectionWindow.show(
                 keys, message='Select Parameter to Calculate Total:')
         if not selectedKey:
@@ -59,54 +66,53 @@ class Visualization:
         
         rs.EnableRedraw(False)
         objectData = {}
-        objectData['guid'] = breps
-        objectData['color'] = rhyton.ColorScheme().getColors(1)[0]
-        rhyton.ElementOverrides.apply(objectData)
-        objectData = rhyton.TextDot.add(
-                objectData, selectedKey)
+        objectData[self.GUID] = breps
+        objectData[self.COLOR] = ColorScheme().getColors(1)[0]
+        ElementOverrides.apply(objectData)
+        objectData = TextDot.add(objectData, selectedKey)
         for item in objectData:
-            rhyton.Group.create(item['guid'])
+            Group.create(item[self.GUID])
         
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
 
-    @staticmethod
-    def byValue():
-        breps = rhyton.GetBreps()
+    def byValue(self):
+        breps = GetBreps()
         if not breps:
             return
     
-        keys = rhyton.ElementUserText.getKeys(breps)
+        keys = ElementUserText.getKeys(breps)
+        options = dict((Format.value(k), k) for k in keys)
         selectedKey = SelectionWindow.show(
-                keys, message='Select Parameter to visualize:')
+                options, message='Select Parameter to visualize:')
         if not selectedKey:
             return
         
-        # reformat color input from 0-100
-        color = rs.GetColor(rhyton.STANDARD_COLOR_1)
+        color = rs.GetColor(self.STANDARD_COLOR_1)
         if not color:
             return
         
         colorStart = [color[0], color[1], color[2]]
         
-        # reformat color input from 0-100
-        color = rs.GetColor(rhyton.STANDARD_COLOR_2)
+        color = rs.GetColor(self.STANDARD_COLOR_2)
         if not color:
             return    
         
         colorEnd = [color[0], color[1], color[2]]
 
         rs.EnableRedraw(False)
-        objectData = rhyton.ColorScheme.applyGradient(
+        objectData = ColorScheme.applyGradient(
                 breps, selectedKey, [colorStart, colorEnd])
-        objectData = rhyton.TextDot.add(objectData, selectedKey)
+        objectData = TextDot.add(
+                objectData, selectedKey, aggregate=False)
         for item in objectData:
-            rhyton.Group.create(item['guid'])
+            Group.create(item[self.GUID])
 
+        rs.UnselectAllObjects()
         rs.EnableRedraw(True)
     
-    @staticmethod
-    def reset():
+    @classmethod
+    def reset(cls):
         preSelection = rs.SelectedObjects()
         resetAll = 'select'
         if not preSelection:
@@ -117,49 +123,30 @@ class Visualization:
                     choices, message='Reset all visualizations?')
 
         if resetAll == 'select':
-            breps = rhyton.GetBreps(filterByTypes=[8, 16, 8192, 1073741824])
+            breps = GetBreps(filterByTypes=[8, 16, 8192, 1073741824])
             if not breps:
                 return
             
             rs.EnableRedraw(False)
-            rhyton.ElementOverrides.clear(breps)
-            rhyton.Group.dissolve(breps)
+            ElementOverrides.clear(breps)
+            Group.dissolve(breps)
         elif resetAll == 'reset':
             rs.EnableRedraw(False)
-            data = rhyton.DocumentConfigStorage().get(
-                    'rhyton.originalColors', dict())
+            data = DocumentConfigStorage().get(
+                    cls.ORIGINAL_COLORS, dict())
             if not data:
                 print('ERROR: No info about original colors available, select elements and try again.')
 
             guids = data.keys()
-            rhyton.Group.dissolve(guids)
-            rhyton.ElementOverrides.clear(guids)
-            textDots = rhyton.DocumentConfigStorage().get(
-                    'rhyton.textdots', dict()).keys()
+            Group.dissolve(guids)
+            ElementOverrides.clear(guids)
+            textDots = DocumentConfigStorage().get(
+                    cls.TEXTDOTS, dict()).keys()
             rs.DeleteObjects(textDots)
-            rhyton.DocumentConfigStorage().save('rhyton.textdots', None)
+            DocumentConfigStorage().save(cls.TEXTDOTS, None)
 
         rs.EnableRedraw(True)
     
-    @staticmethod
-    def export():
-        breps = rhyton.GetBreps()
-        if not breps:
-            return
-        
-        CSV, JSON = "CSV", "JSON"
-        exportMethod = SelectionWindow.show(
-                [CSV, JSON],
-                message='Select export format:')
-        keys = rhyton.ElementUserText.getKeys()
-        # add memory to remember state of checkboxes
-        selectedKeys = SelectionWindow.showBoxes(keys)
-
-        if exportMethod == CSV:
-            Export.toCSV(breps, selectedKeys)
-        elif exportMethod == JSON:
-            exportMethod.toJSON(breps, selectedKeys)
-        
 
 class ColorSchemeEditor:
         # show dialog to pick from available color schemes
@@ -174,16 +161,31 @@ class ColorSchemeEditor:
 
 class Export:
 
-    @staticmethod
-    def toCSV(guids, keys):
-        data = rhyton.ElementUserText.get(guids, keys)
-        file = export.CSV.write(data)
+    def __init__(self):
+        breps = GetBreps()
+        if not breps:
+            return
+        
+        exportMethod = SelectionWindow.show(
+                [self.CSV, self.JSON],
+                message='Select export format:')
+        keys = ElementUserText.getKeys()
+        # add memory to remember state of checkboxes
+        selectedKeys = SelectionWindow.showBoxes(keys)
+
+        if exportMethod == self.CSV:
+            Export.toCSV(breps, selectedKeys)
+        elif exportMethod == self.JSON:
+            exportMethod.toJSON(breps, selectedKeys)
+
+    def toCSV(self, guids, keys):
+        data = ElementUserText.get(guids, keys)
+        file = CsvExporter.write(data)
         os.startfile(file)
 
-    @staticmethod
-    def toJSON(guids, keys):
-        data = rhyton.ElementUserText.get(guids, keys)
-        file = export.JSON.write(data)
+    def toJSON(self, guids, keys):
+        data = ElementUserText.get(guids, keys)
+        file = JsonExporter.write(data)
         os.startfile(file)
 
 

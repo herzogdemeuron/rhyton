@@ -1,24 +1,27 @@
 """
 Module for changing the document.
 """
+# python standard imports
 import json
-
-import rhinoscriptsyntax as rs
-import rhyton
-
-from Rhino.Geometry import Line
-
 from collections import defaultdict
 
+# rhino imports
+import rhinoscriptsyntax as rs
+from Rhino.Geometry import Line
 
+# rhyton imports
+from utils import Format, toList, formatNumber
+from main import Rhyton
+from color import Color
 
-class ElementOverrides:
+# from rhyton import *
+
+class ElementOverrides(Rhyton):
     """
     Class for handling color overrides on Rhino objects.
     """
-
-    @staticmethod
-    def apply(overrides):
+    @classmethod
+    def apply(cls, overrides):
         """
         Set the color for given elements. The original color and color source
         will be stored alongside the objects id in the document user text.
@@ -50,29 +53,30 @@ class ElementOverrides:
         Args:
             overrides (list(dict)): A dictionary or a list of dictionaries.
         """
-        overrides = rhyton.toList(overrides)
+        overrides = toList(overrides)
         originalColors = dict()
 
         for override in overrides:
-            guids = override['guid']
-            guids = rhyton.toList(guids)
+            guids = override[cls.GUID]
+            guids = toList(guids)
             
             for guid in guids:
                 color = rs.ObjectColor(guid)
                 color = tuple([color[0], color[1], color[2]])
                 original = dict()
-                original['color'] = rhyton.Color.RGBtoHEX(color)
-                original['source'] = rs.ObjectColorSource(guid)
+                original[cls.COLOR] = Color.RGBtoHEX(color)
+                original[cls.COLOR_SOURCE] = rs.ObjectColorSource(guid)
                 originalColors[guid] = original
                 rs.ObjectColor(
                         guid,
-                        rhyton.Color.HEXtoRGB(override.get('color', '#FFFFFF')))
+                        Color.HEXtoRGB(
+                                override.get(cls.COLOR, cls.HEX_WHITE)))
 
-        AffectedElements.save('rhyton.originalColors', originalColors)
+        AffectedElements.save(cls.ORIGINAL_COLORS, originalColors)
 
 
-    @staticmethod
-    def clear(guids):
+    @classmethod
+    def clear(cls, guids):
         """
         Clear the color overrides for given objects.
         The original colors will be restored from the element's user text.
@@ -81,25 +85,25 @@ class ElementOverrides:
             guids (str): The ids of the objects.
         """
         originalColors = DocumentConfigStorage().get(
-                'rhyton.originalColors', defaultdict())
+                cls.ORIGINAL_COLORS, defaultdict())
         for guid in guids:
-            hexColor = originalColors.get(guid, dict()).get('color')
+            hexColor = originalColors.get(guid, dict()).get(cls.COLOR)
             if hexColor:
-                rgbColor = rhyton.Color.HEXtoRGB(hexColor)
+                rgbColor = Color.HEXtoRGB(hexColor)
                 rs.ObjectColor(guid, rgbColor)
 
             rs.ObjectColorSource(guid, originalColors.get(
-                    guid, dict()).get('source', 0))
+                    guid, dict()).get(cls.COLOR_SOURCE, 0))
 
-        AffectedElements.remove('rhyton.originalColors', guids)
+        AffectedElements.remove(cls.ORIGINAL_COLORS, guids)
 
 
-class TextDot:
+class TextDot(Rhyton):
     """
     Class for handling Rhino text dot objects.
     """
-    @staticmethod
-    def add(data, valueKey):
+    @classmethod
+    def add(cls, data, valueKey, aggregate=True):
         """
         Adds a new text dot to the document.
         The textdot location is the center of the bounding box of given guid(s).
@@ -138,33 +142,39 @@ class TextDot:
         Returns:
             list: The input list of dicts with the guids of the text dots added.
         """
-        data = rhyton.toList(data)
-        textDots = {}
+        data = toList(data)
+        textDots = dict()
         for dot in data:
-            dot['guid'] = rhyton.toList(dot['guid'])
-            bBox = rs.BoundingBox(dot['guid'])
-            try:
-                value = ElementUserText.aggregate(dot['guid'], valueKey)
-                value = rhyton.formatNumber(value)
-            except:
-                value = len(dot['guid'])
+            dot[cls.GUID] = toList(dot[cls.GUID])
+            bBox = rs.BoundingBox(dot[cls.GUID])
+            if aggregate:
+                try:
+                    value = ElementUserText.aggregate(dot[cls.GUID], valueKey)
+                    value = formatNumber(value, valueKey)
+                except:
+                    value = len(dot[cls.GUID])
+            else:
+                value = ElementUserText.getValue(
+                            dot[cls.GUID][0], valueKey)
+                try:
+                    value = formatNumber(float(value), valueKey)
+                except:
+                    if value == cls.WHITESPACE:
+                        value = cls.EMPTY
+                    elif value == None:
+                        value = cls.NOT_AVAILABLE
 
-            # textValues = [prefix, value]
-            # if showGroupName:
-            #     textValues.insert(1, dot[groupKey])
-
-            # text = " ".join(textValues).strip()
             point = Line(bBox[0], bBox[6]).PointAt(0.5)
             textDot = rs.AddTextDot(value, point)
             rs.ObjectColor(
                     textDot,
-                    rhyton.Color.HEXtoRGB(dot.get('color', '#FFFFFF')))
-            rs.TextDotFont(textDot, 'Arial')
+                    Color.HEXtoRGB(dot.get(cls.COLOR, cls.HEX_WHITE)))
+            rs.TextDotFont(textDot, cls.FONT)
             rs.TextDotHeight(textDot, 12.0)
-            dot['guid'].append(str(textDot))
+            dot[cls.GUID].append(str(textDot))
             textDots[str(textDot)] = 1
 
-        AffectedElements.save('rhyton.textdots', textDots)
+        AffectedElements.save(cls.TEXTDOTS, textDots)
         return data
 
 
@@ -201,7 +211,7 @@ class AffectedElements:
         Args:
             guids (str): A single or a list of Rhino object ids.
         """
-        guids = rhyton.toList(guids)
+        guids = toList(guids)
 
         existing = DocumentConfigStorage().get(
                 flag, defaultdict())
@@ -217,10 +227,10 @@ class DocumentConfigStorage:
     Class for handling the reading and writing of document user text.
     """
     def __init__(self):
-        self.storageName = 'RHYTON_CONFIG'
+        self.storageName = Rhyton.RHYTON_CONFIG
         self.storage = dict()
         raw = rs.GetDocumentUserText(key=self.storageName)
-        if raw and raw != ' ':
+        if raw and raw != Rhyton.WHITESPACE:
             self.storage = json.loads(raw)
         else:
             print('No configuration available.')
@@ -259,12 +269,14 @@ class DocumentConfigStorage:
         return self.storage.get(flag, default)
 
 
-class ElementUserText:
+class ElementUserText(Rhyton):
     """
     Class for handling user text on Rhino objects.
     """
-    @staticmethod
-    def apply(data):
+    def __init__(self, extensionName):
+        super(ElementUserText, self).__init__(extensionName)
+
+    def apply(self, data):
         """
         Applies given user text to provided elements.
         The expected input format for 'data' is a dictionary containing the guid
@@ -284,7 +296,7 @@ class ElementUserText:
                             "string_key": "Value",
                             "number_key": 0
                         }
-                    ])
+                    ], keyPrefix='xyz_')
 
             # or
 
@@ -300,23 +312,22 @@ class ElementUserText:
 
         Args:
             data (list(dict)): A list of dictionaries describing the 
+            keyPrefix (str, optional): The prefix for all keys. Defaults to "".
         """
-        data = rhyton.toList(data)
+        data = toList(data)
 
-        # guids =  set()
         for entry in data:
-            guid = entry['guid']
-            # guids.add(guid)
-            del entry['guid']
+            guid = entry[self.GUID]
+            del entry[self.GUID]
             for key, value in entry.items():
-                rs.SetUserText(guid, rhyton.Key(key), rhyton.Value(value))
+                rs.SetUserText(
+                        guid,
+                        key=Format.key(self.KEY_PREFIX + key),
+                        value=Format.value(value))
 
-        # AffectedElements.save('rhyton.usertextElements', guids)
-
-    @staticmethod
-    def get(guids, keys=None):
+    def get(self, guids, keys=None):
         """
-        Gets the user text for given elements.
+        Gets user text from given elements.
 
         Return format::
 
@@ -340,12 +351,13 @@ class ElementUserText:
             if not keys: 
                 keys = rs.GetUserText(guid)
 
-            keys = rhyton.toList(keys)
+            keys = toList(keys)
             entry = dict()
-            entry['guid'] = guid
+            entry[self.GUID] = guid
             for key in keys:
                 entry[key] = rs.GetUserText(guid, key)
                 data.append(entry)
+
         return data
     
     @staticmethod
@@ -356,7 +368,7 @@ class ElementUserText:
         Args:
             guids (str): A list of Rhino objects ids.
         """
-        guids = rhyton.toList(guids)
+        guids = toList(guids)
         keys = set()
         for guid in guids:
             for key in rs.GetUserText(guid):
@@ -372,11 +384,11 @@ class ElementUserText:
         Args:
             guids (str): A list of Rhino objects ids.
         """
-        guids = rhyton.toList(guids)
+        guids = toList(guids)
         values = set()
         for guid in guids:
             if keys:
-                for key in rhyton.toList(keys):
+                for key in toList(keys):
                     values.add(rs.GetUserText(guid, key))
             else:
                 elementKeys = rs.GetUserText(guid)
@@ -387,8 +399,24 @@ class ElementUserText:
         return values
     
     @staticmethod
+    def getValue(guid, key):
+        """
+        Wrapper function to get user text from an objects
+
+        Args:
+            guid (str): A rhino objects id.
+            key (str): The key to get the value from.
+
+        Returns:
+            mixed: None if key does not exist,
+            " " if key has no value,
+            else: str of value
+        """
+        return rs.GetUserText(guid, key)
+        
+    @staticmethod
     def aggregate(guids, keys=[]):
-        keys = rhyton.toList(keys)
+        keys = toList(keys)
         values = []
         for guid in guids:
             for key in keys:
@@ -400,9 +428,11 @@ class ElementUserText:
 
 
 class Group:
-
-    @staticmethod
-    def create(guids, groupName=''):
+    """
+    Class for handling Rhino groups.
+    """
+    @classmethod
+    def create(cls, guids, groupName=''):
         """
         Creates a new group with given name and adds given objects to it.
         The groupname will be expanded to prevent ambiguity.
@@ -412,7 +442,8 @@ class Group:
             groupName (str): The basename of the group.
         """
         import uuid
-        groupName = "_".join(['rhyton', groupName, str(uuid.uuid1())])
+        groupName = cls.DELIMIJTER.join(
+                [cls.RHYTON_GROUP, groupName, str(uuid.uuid1())])
         rs.AddGroup(groupName)
         rs.AddObjectsToGroup(guids, groupName)
         return groupName
@@ -426,7 +457,7 @@ class Group:
         Args:
             guids (str): A list or a single Rhino object id.
         """
-        guids = rhyton.toList(guids)
+        guids = toList(guids)
         groupNames = set()
         for guid in guids:
             groupNames.add(rs.ObjectTopGroup(guid))
@@ -435,3 +466,25 @@ class Group:
         
         for group in groupNames:
             rs.DeleteGroup(group)
+
+
+def GetBreps(filterByTypes=[8, 16, 1073741824]):
+    """
+    Gets the currently selected Rhino objects or asks the user to go get some.
+    
+    Allowed objects are by default::
+
+        8 = Surface
+        16 = Polysurface
+        8192 = Text Dot
+        1073741824 = Extrusion
+
+    Returns:
+        list: A list of Rhino objects ids.
+    """
+    selection = rs.GetObjects(preselect=True, select=True)
+    if not selection:
+        return None
+
+    breps = [str(b) for b in selection if rs.ObjectType(b) in filterByTypes]
+    return breps

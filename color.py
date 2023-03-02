@@ -1,28 +1,23 @@
 """
 Module for color operations.
 """
-import colorsys
+# python standard imports
 import os
 import json
-from math import ceil
+import random
+import colorsys
 from itertools import repeat
-import rhyton
-from rhyton.document import DocumentConfigStorage
 from collections import defaultdict
 
+# rhyton imports
+from main import Rhyton
+# from rhyton import *
 
 
 class Color:
     """
     Class for basic color operations.
     """
-
-    def __init__(self):
-        """
-        Inits a new Color instance.
-        """
-        pass
-    
     @staticmethod
     def HSVtoRGB(hsv):
         """
@@ -50,21 +45,21 @@ class Color:
         return '%02x%02x%02x' % rgb
 
     @staticmethod
-    def HEXtoRGB(hex):
+    def HEXtoRGB(hexColor):
         """
         Converts a hex color string to rgb.
 
         Args:
-            hex (sting): The hex color
+            hexColor (sting): The hex color
 
         Returns:
             tuple: The rgb color
         """
-        hex = hex.lstrip('#')
-        return tuple(int(hex[i:i+2], 16) for i in (0, 2, 4))
+        hexColor = hexColor.lstrip('#')
+        return tuple(int(hexColor[i:i+2], 16) for i in (0, 2, 4))
 
 
-class ColorScheme:
+class ColorScheme(Rhyton):
     """
     Class for handling relationships between labels and colors.
     """
@@ -72,8 +67,8 @@ class ColorScheme:
         """
         Inits a new ColorScheme instance.
         """
-        self.flag = 'rhyton.colorschemes'
-        self.schemes = rhyton.DocumentConfigStorage().get(
+        self.flag = Rhyton.COLOR_SCHEMES
+        self.schemes = ry.DocumentConfigStorage().get(
             self.flag, defaultdict())
         self.defaultColors = [
                             '#F44336', '#E91E63', '#9C27B0', '#673AB7',
@@ -128,8 +123,8 @@ class ColorScheme:
 
         return scheme
 
-    @staticmethod
-    def getFromUser(excludeSchemes=None):
+    @classmethod
+    def getFromUser(cls, excludeSchemes=None):
         """
         Asks the user to select a rhyton color scheme.
 
@@ -142,19 +137,17 @@ class ColorScheme:
         if not type(excludeSchemes) == list:
             excludeSchemes = [excludeSchemes]
 
-        names = [scheme['name'] for scheme in ColorScheme().schemes
-                         if not scheme['name'] in excludeSchemes]
-
-        schemeName = rhyton.SelectionWindow.show(sorted(names),
+        names = [scheme[cls.NAME] for scheme in ColorScheme().schemes
+                         if not scheme[cls.NAME] in excludeSchemes]
+        schemeName = ry.SelectionWindow.show(sorted(names),
                 message='Choose Color Scheme:')
-
         if not schemeName:
             return None
 
         return ColorScheme().schemes.get(schemeName)
 
-    @staticmethod
-    def apply(guids, schemeName):
+    @classmethod
+    def apply(cls, guids, schemeName):
         """
         Applies a rhyton color scheme to given objects.
         Updates the color scheme with new keys and colors.
@@ -166,7 +159,7 @@ class ColorScheme:
         Returns:
             dict: Same return as ElementUserText but with key "color" added.
         """
-        keys = rhyton.ElementUserText.getValues(guids, keys=schemeName)
+        keys = ry.ElementUserText.getValues(guids, keys=schemeName)
         keyColors = ColorScheme().schemes.get(schemeName)
         if not keyColors:
             keyColors = ColorScheme().generate(keys)
@@ -177,20 +170,20 @@ class ColorScheme:
             ColorScheme().update(schemeName, keys)
             keyColors = ColorScheme().schemes.get(schemeName)
 
-        objectData = rhyton.ElementUserText.get(guids, keys=schemeName)
+        objectData = ry.ElementUserText.get(guids, keys=schemeName)
         for entry in objectData:
             value = entry.get(schemeName)
             if value:
-                entry['color'] = keyColors[value]
+                entry[cls.COLOR] = keyColors[value]
             else:
-                entry['color'] = '#FFFFFF'
-                entry[schemeName] = 'None'
+                entry[cls.COLOR] = cls.HEX_WHITE
+                entry[schemeName] = cls.NOT_AVAILABLE
 
-        rhyton.ElementOverrides.apply(objectData)
+        ry.ElementOverrides.apply(objectData)
         return objectData
 
-    @staticmethod
-    def applyGradient(guids, schemeName, gradient):
+    @classmethod
+    def applyGradient(cls, guids, schemeName, gradient):
         """
         Applies a rhyton color gradient to given objects.
 
@@ -199,20 +192,16 @@ class ColorScheme:
             schemeName (str): The name of the color scheme.
             gradient (list): Two RGB colors: [start, end]
         """
-        rawValues = rhyton.ElementUserText.getValues(guids, keys=schemeName)
+        rawValues = ry.ElementUserText.getValues(guids, keys=schemeName)
         values = sorted(rawValues)
-        print(values)
-        keyColors = rhyton.ColorScheme().generate(values, gradient=gradient)
-        print(keyColors)
-        objectData = rhyton.ElementUserText.get(guids, keys=schemeName)
-        print(objectData)
-
+        keyColors = ry.ColorScheme().generate(values, gradient=gradient)
+        objectData = ry.ElementUserText.get(guids, keys=schemeName)
         for entry in objectData:
             value = entry.get(schemeName)
             if value:
-                entry['color'] = keyColors[value]
+                entry[cls.COLOR] = keyColors[value]
 
-        rhyton.ElementOverrides.apply(objectData)
+        ry.ElementOverrides.apply(objectData)
         return objectData
 
     def generate(self, keys, excludeColors=None, gradient=False):
@@ -246,7 +235,6 @@ class ColorScheme:
         elif gradient:
             colorsRGB = Gradient.betweenRgbColors(len(keys), gradient[0], gradient[1])
             colors = [Color.RGBtoHEX(rgb) for rgb in colorsRGB]
-            print(colors)
 
         keyColors = dict()
         for value, color in zip(sorted(keys), colors):
@@ -268,7 +256,6 @@ class ColorScheme:
         """
         oldKeys = set(self.schemes[schemeName].keys())
         newKeys = list(set(keys).difference(oldKeys))
-
         if newKeys:
             excludeColors = self.schemes[schemeName].values()
             tempKeyColors = ColorScheme().generate(
@@ -278,7 +265,7 @@ class ColorScheme:
             
             self.schemes[schemeName].update(tempKeyColors)
 
-        DocumentConfigStorage().save(self.flag, self.schemes)
+        ry.DocumentConfigStorage().save(self.flag, self.schemes)
 
     def save(self, schemeName, keyValues):
         """
@@ -298,7 +285,7 @@ class ColorScheme:
         scheme = dict()
         scheme[schemeName] = keyValues
         self.schemes.update(scheme)
-        DocumentConfigStorage().save(self.flag, self.schemes)
+        ry.DocumentConfigStorage().save(self.flag, self.schemes)
 
     def delete(self, schemeName):
         """
@@ -310,7 +297,7 @@ class ColorScheme:
         if schemeName in self.schemes:
             del self.schemes[schemeName]
         
-        DocumentConfigStorage().save(self.flag, self.schemes)
+        ry.DocumentConfigStorage().save(self.flag, self.schemes)
 
     def getColors(self, count, excludeColors=[]):
         """
@@ -321,19 +308,13 @@ class ColorScheme:
         Returns:
             string: A list of colors
         """
-        import random
 
-        def filterColors(excludeColors, colors):
-            if excludeColors:
-                availableColors = filter(
-                    lambda color: color not in excludeColors, colors)
-                return availableColors
-            else:
-                 return colors
-
-        self.defaultColors = filterColors(excludeColors, self.defaultColors)
-        self.extendedColors = filterColors(excludeColors, self.extendedColors)
-
+        self.defaultColors = self._filterColors(
+                excludeColors, self.defaultColors)
+        
+        self.extendedColors = self._filterColors(
+                excludeColors, self.extendedColors)
+        
         if count <= len(self.defaultColors):
             availableColors = self.defaultColors
         elif count <= len(self.extendedColors):
@@ -351,6 +332,14 @@ class ColorScheme:
 
         colors = random.sample(availableColors, count)
         return colors
+    
+    def _filterColors(self, excludeColors, colors):
+        if excludeColors:
+            availableColors = filter(
+                lambda color: color not in excludeColors, colors)
+            return availableColors
+        else:
+            return colors
 
 
 class ColorRange:
@@ -398,12 +387,9 @@ class ColorRange:
         hsv = []
         for i in [
                 x * 0.01 for x in range(
-                                        self.min,
-                                        self.max,
-                                            (self.range / self.count
-                                            )
-                                        )
-                                    ]:
+                        self.min, 
+                        self.max,
+                        (self.range / self.count))]:
             hsv.append((i, 0.5, 0.9))
         return hsv
 
@@ -425,19 +411,15 @@ class Gradient:
         rangeB = cls._getRange(start[2], end[2], count)
         return tuple(zip(rangeR, rangeG, rangeB))
 
-    @classmethod
-    def _getRange(cls, start, end, count):
+    @staticmethod
+    def _getRange(start, end, count):
         if start == end:
-            print(repeat(start, count))
             return repeat(start, count)
 
-        # step = int(ceil((end - start) / count))
         step = (end - start) / count
         increments = []
         for i in range(count):
             increments.append(int(start))
             start += step
 
-        print(increments)
         return increments
-        # return [int(x) for x in range(start, end, step)]
