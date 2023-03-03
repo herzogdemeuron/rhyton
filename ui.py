@@ -13,14 +13,14 @@ from main import Rhyton
 from export import CsvExporter, JsonExporter
 from document import GetBreps, ElementUserText, Group, TextDot
 from document import DocumentConfigStorage, ElementOverrides
-from color import ColorScheme
-from utils import groupGuidsBy, Format
+from utils import Format, groupGuidsBy
 
 class Visualize(Rhyton):
-    def __init__(self, extensionName):
-        super(Visualize, self).__init__(extensionName)
-
-    def byGroup(self):
+    """
+    Class for visualizing user text on Rhino objects.
+    """
+    @classmethod
+    def byGroup(cls):
         """
         Visualizes a set of Rhino objects and their user text:
         The user input 'Parameter to Group By' is used for coloring
@@ -28,6 +28,8 @@ class Visualize(Rhyton):
         user-selected 'Parameter to Summarize'.
         Places text dots with the value for each group.
         """
+        from color import ColorScheme
+
         breps = GetBreps()
         if not breps:
             return
@@ -45,15 +47,18 @@ class Visualize(Rhyton):
         
         rs.EnableRedraw(False)
         objectData = ColorScheme.apply(breps, selectedKey)
-        objectData = groupGuidsBy(objectData, [selectedKey, self.COLOR])
+        objectData = groupGuidsBy(objectData, [selectedKey, cls.COLOR])
         objectData = TextDot.add(objectData, selectedValue)
         for item in objectData:
-            Group.create(item[self.GUID], item[selectedKey])
+            Group.create(item[cls.GUID], item[selectedKey])
         
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
 
-    def sumTotal(self):
+    @classmethod
+    def sumTotal(cls):
+        from color import ColorScheme
+
         breps = GetBreps()
         if not breps:
             return
@@ -66,35 +71,37 @@ class Visualize(Rhyton):
         
         rs.EnableRedraw(False)
         objectData = {}
-        objectData[self.GUID] = breps
-        objectData[self.COLOR] = ColorScheme().getColors(1)[0]
+        objectData[cls.GUID] = breps
+        objectData[cls.COLOR] = ColorScheme().getColors(1)[0]
         ElementOverrides.apply(objectData)
         objectData = TextDot.add(objectData, selectedKey)
         for item in objectData:
-            Group.create(item[self.GUID])
+            Group.create(item[cls.GUID])
         
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
 
-    def byValue(self):
+    @classmethod
+    def byValue(cls):
+        from color import ColorScheme
+
         breps = GetBreps()
         if not breps:
             return
     
         keys = ElementUserText.getKeys(breps)
-        options = dict((Format.value(k), k) for k in keys)
         selectedKey = SelectionWindow.show(
-                options, message='Select Parameter to visualize:')
+                options=keys, message='Select Parameter to visualize:')
         if not selectedKey:
             return
         
-        color = rs.GetColor(self.STANDARD_COLOR_1)
+        color = rs.GetColor(cls.STANDARD_COLOR_1)
         if not color:
             return
         
         colorStart = [color[0], color[1], color[2]]
         
-        color = rs.GetColor(self.STANDARD_COLOR_2)
+        color = rs.GetColor(cls.STANDARD_COLOR_2)
         if not color:
             return    
         
@@ -106,7 +113,7 @@ class Visualize(Rhyton):
         objectData = TextDot.add(
                 objectData, selectedKey, aggregate=False)
         for item in objectData:
-            Group.create(item[self.GUID])
+            Group.create(item[cls.GUID])
 
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
@@ -133,7 +140,7 @@ class Visualize(Rhyton):
         elif resetAll == 'reset':
             rs.EnableRedraw(False)
             data = DocumentConfigStorage().get(
-                    cls.ORIGINAL_COLORS, dict())
+                    cls.EXTENSION_ORIGINAL_COLORS, dict())
             if not data:
                 print('ERROR: No info about original colors available, select elements and try again.')
 
@@ -141,9 +148,9 @@ class Visualize(Rhyton):
             Group.dissolve(guids)
             ElementOverrides.clear(guids)
             textDots = DocumentConfigStorage().get(
-                    cls.TEXTDOTS, dict()).keys()
+                    cls.EXTENSION_TEXTDOTS, dict()).keys()
             rs.DeleteObjects(textDots)
-            DocumentConfigStorage().save(cls.TEXTDOTS, None)
+            DocumentConfigStorage().save(cls.EXTENSION_TEXTDOTS, None)
 
         rs.EnableRedraw(True)
     
@@ -159,40 +166,80 @@ class ColorSchemeEditor:
         pass
 
 
-class Export:
+class Export(Rhyton):
 
-    def __init__(self):
+    @classmethod
+    def __init__(cls):
         breps = GetBreps()
         if not breps:
             return
         
         exportMethod = SelectionWindow.show(
-                [self.CSV, self.JSON],
+                [cls.CSV, cls.JSON],
                 message='Select export format:')
         keys = ElementUserText.getKeys()
         # add memory to remember state of checkboxes
         selectedKeys = SelectionWindow.showBoxes(keys)
 
-        if exportMethod == self.CSV:
+        if exportMethod == cls.CSV:
             Export.toCSV(breps, selectedKeys)
-        elif exportMethod == self.JSON:
+        elif exportMethod == cls.JSON:
             exportMethod.toJSON(breps, selectedKeys)
 
-    def toCSV(self, guids, keys):
+    def toCSV(cls, guids, keys):
         data = ElementUserText.get(guids, keys)
         file = CsvExporter.write(data)
         os.startfile(file)
 
-    def toJSON(self, guids, keys):
+    def toJSON(cls, guids, keys):
         data = ElementUserText.get(guids, keys)
         file = JsonExporter.write(data)
         os.startfile(file)
 
 
-class SelectionWindow:
+class Settings(Rhyton):
+    def __init__(self, extensionName):
+        super(Settings, self).__init__(extensionName)
+        """
+        Inits a new Settings instance.
+        Presents a UI to the user that shows the current settings and
+        allows to change them.
+        """
+        inValidInput = True
+        while inValidInput:
+            res = SelectionWindow.dictBox(
+                    options=self.settings, message=self.EXTENSION_SETTINGS)
+            if res:
+                try:
+                    int(res[self.ROUNDING_DECIMALS_NAME])
+                    inValidInput = False
+                except:
+                    pass
+            else:
+                inValidInput = False
+        
+        self.saveSettings(res)
 
+
+class SelectionWindow:
+    """
+    Wrapper class for Rhino user interfaces.
+    """
     @staticmethod
     def show(options, message=None):
+        """
+        Shows a list box to the user that allows to select from a
+        list of options.
+
+        Args:
+            options (mixed): A list of strings or dict 
+                    (shows keys to user, returns value).
+            message (str, optional): The message to the user. Defaults to None.
+
+        Returns:
+            mixed: The value of the selected key from the input dictionary or 
+                    the selected item from the input list.
+        """
         if not type(options) == dict:
             options = dict((i, i) for i in options)
 
@@ -202,7 +249,42 @@ class SelectionWindow:
         
     @staticmethod
     def showBoxes(options, message=None):
+        """
+        Shows a checkbox list to the user that allows to select from
+        multiple items.
+
+        Example input/output::
+
+            [("option1", True), ("option2", False)]
+
+        The returns are formatted as shown above.
+
+        Args:
+            options (mixed): A list (all checkboxes are unchecked by default)
+                    or list of tuple with pre-defined checkbox states
+            message (str, optional): The message to the user. Defaults to None.
+
+        Returns:
+            list(tuple): A list of tuples indicating
+                    the name and state of each checkbox.
+        """ 
         if not type(options) == tuple:
             options = tuple((i, True) for i in options)
 
         return rs.CheckListBox(options, message)
+    
+    @staticmethod
+    def dictBox(options, message=None):
+        """
+        Show a dictionary-style list box to the user.
+
+        Args:
+            options (dict): The key, value pairs.
+            message (str, optional): The message to the user. Defaults to None.
+        """
+        res = rs.PropertyListBox(
+                [Format.value(k) for k in options.keys()],
+                options.values(),
+                message)
+        if res:
+            return dict((k, v) for k, v in zip(options.keys(), res))

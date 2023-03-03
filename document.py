@@ -1,5 +1,5 @@
 """
-Module for changing the document.
+This is the only module in this package that actually modifies the Rhino document.
 """
 # python standard imports
 import json
@@ -10,11 +10,9 @@ import rhinoscriptsyntax as rs
 from Rhino.Geometry import Line
 
 # rhyton imports
-from utils import Format, toList, formatNumber
 from main import Rhyton
-from color import Color
+from utils import Format, toList
 
-# from rhyton import *
 
 class ElementOverrides(Rhyton):
     """
@@ -53,6 +51,8 @@ class ElementOverrides(Rhyton):
         Args:
             overrides (list(dict)): A dictionary or a list of dictionaries.
         """
+        from color import Color
+
         overrides = toList(overrides)
         originalColors = dict()
 
@@ -72,7 +72,7 @@ class ElementOverrides(Rhyton):
                         Color.HEXtoRGB(
                                 override.get(cls.COLOR, cls.HEX_WHITE)))
 
-        AffectedElements.save(cls.ORIGINAL_COLORS, originalColors)
+        AffectedElements.save(cls.EXTENSION_ORIGINAL_COLORS, originalColors)
 
 
     @classmethod
@@ -84,8 +84,10 @@ class ElementOverrides(Rhyton):
         Args:
             guids (str): The ids of the objects.
         """
+        from color import Color
+
         originalColors = DocumentConfigStorage().get(
-                cls.ORIGINAL_COLORS, defaultdict())
+                cls.EXTENSION_ORIGINAL_COLORS, defaultdict())
         for guid in guids:
             hexColor = originalColors.get(guid, dict()).get(cls.COLOR)
             if hexColor:
@@ -95,7 +97,7 @@ class ElementOverrides(Rhyton):
             rs.ObjectColorSource(guid, originalColors.get(
                     guid, dict()).get(cls.COLOR_SOURCE, 0))
 
-        AffectedElements.remove(cls.ORIGINAL_COLORS, guids)
+        AffectedElements.remove(cls.EXTENSION_ORIGINAL_COLORS, guids)
 
 
 class TextDot(Rhyton):
@@ -142,6 +144,8 @@ class TextDot(Rhyton):
         Returns:
             list: The input list of dicts with the guids of the text dots added.
         """
+        from color import Color
+
         data = toList(data)
         textDots = dict()
         for dot in data:
@@ -150,14 +154,14 @@ class TextDot(Rhyton):
             if aggregate:
                 try:
                     value = ElementUserText.aggregate(dot[cls.GUID], valueKey)
-                    value = formatNumber(value, valueKey)
+                    value = Format.formatNumber(value, valueKey)
                 except:
                     value = len(dot[cls.GUID])
             else:
                 value = ElementUserText.getValue(
                             dot[cls.GUID][0], valueKey)
                 try:
-                    value = formatNumber(float(value), valueKey)
+                    value = Format.formatNumber(float(value), valueKey)
                 except:
                     if value == cls.WHITESPACE:
                         value = cls.EMPTY
@@ -174,7 +178,7 @@ class TextDot(Rhyton):
             dot[cls.GUID].append(str(textDot))
             textDots[str(textDot)] = 1
 
-        AffectedElements.save(cls.TEXTDOTS, textDots)
+        AffectedElements.save(cls.EXTENSION_TEXTDOTS, textDots)
         return data
 
 
@@ -273,10 +277,8 @@ class ElementUserText(Rhyton):
     """
     Class for handling user text on Rhino objects.
     """
-    def __init__(self, extensionName):
-        super(ElementUserText, self).__init__(extensionName)
-
-    def apply(self, data):
+    @classmethod
+    def apply(cls, data):
         """
         Applies given user text to provided elements.
         The expected input format for 'data' is a dictionary containing the guid
@@ -317,15 +319,16 @@ class ElementUserText(Rhyton):
         data = toList(data)
 
         for entry in data:
-            guid = entry[self.GUID]
-            del entry[self.GUID]
+            guid = entry[cls.GUID]
+            del entry[cls.GUID]
             for key, value in entry.items():
                 rs.SetUserText(
                         guid,
-                        key=Format.key(self.KEY_PREFIX + key),
+                        key=Format.key(cls.KEY_PREFIX + key),
                         value=Format.value(value))
 
-    def get(self, guids, keys=None):
+    @classmethod
+    def get(cls, guids, keys=None):
         """
         Gets user text from given elements.
 
@@ -353,7 +356,7 @@ class ElementUserText(Rhyton):
 
             keys = toList(keys)
             entry = dict()
-            entry[self.GUID] = guid
+            entry[cls.GUID] = guid
             for key in keys:
                 entry[key] = rs.GetUserText(guid, key)
                 data.append(entry)
@@ -427,7 +430,7 @@ class ElementUserText(Rhyton):
         return sum(values)
 
 
-class Group:
+class Group(Rhyton):
     """
     Class for handling Rhino groups.
     """
@@ -442,8 +445,8 @@ class Group:
             groupName (str): The basename of the group.
         """
         import uuid
-        groupName = cls.DELIMIJTER.join(
-                [cls.RHYTON_GROUP, groupName, str(uuid.uuid1())])
+        groupName = cls.DELIMITER.join(
+                [cls.GROUP, groupName, str(uuid.uuid1())])
         rs.AddGroup(groupName)
         rs.AddObjectsToGroup(guids, groupName)
         return groupName

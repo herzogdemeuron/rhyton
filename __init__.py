@@ -27,8 +27,8 @@ Coding Style Guid:
     - 'camelCase' function and variable names.
     - Title 'CamelCase' class names.
     - Class names and functions are designed for reading flow:
-        * rhyton.Visualize('extension_name').byGroup()
-        * rhyton.Export('extension_name').toCSV()
+        * rhyton.Visualize.byGroup()
+        * rhyton.Export.toCSV()
     - "" for text that is presented to the user.
     - '' for internal stings.
     - Functions in ui.py should not take arguments to keep out clutter.

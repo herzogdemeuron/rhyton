@@ -35,6 +35,27 @@ class Format(Rhyton):
         """
         return str(value).replace(cls.DELIMITER, cls.WHITESPACE).title()
 
+    @classmethod
+    def formatNumber(cls, number, key):
+        """
+        Formats a number.
+
+        Args:
+            number (float): The number to format.
+
+        Returns:
+            float: The formatted number.
+        """
+        suffix = cls.UNIT_SUFFIX
+        if 'area' in key.lower():
+            suffix = cls.UNIT_SUFFIX + '2'
+
+        if 'volume' in key.lower():
+            suffix = cls.UNIT_SUFFIX + '3'
+
+        print(cls.ROUNDING_DECIMALS)
+        return str(round(number, cls.ROUNDING_DECIMALS)) + suffix
+    
 
 def displayKey(key, rmPrefix=None):
     """
@@ -110,25 +131,6 @@ def groupGuidsBy(data, keys):
     return result
 
 
-def formatNumber(number, key):
-    """
-    Formats a number.
-
-    Args:
-        number (float): The number to format.
-
-    Returns:
-        float: The formatted number.
-    """
-    suffix = Rhyton.UNIT_SUFFIX
-    if 'area' in key.lower():
-        suffix = Rhyton.UNIT_SUFFIX + '2'
-
-    if 'volume' in key.lower():
-        suffix = Rhyton.UNIT_SUFFIX + '3'
-
-    print(Rhyton.ROUNDING_DECIMALS)
-    return str(round(number, Rhyton.ROUNDING_DECIMALS)) + suffix
 
 
 def removePrefix(string, prefix):

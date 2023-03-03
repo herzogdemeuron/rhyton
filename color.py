@@ -11,8 +11,8 @@ from collections import defaultdict
 
 # rhyton imports
 from main import Rhyton
-# from rhyton import *
-
+from ui import SelectionWindow
+from document import DocumentConfigStorage, ElementUserText, ElementOverrides
 
 class Color:
     """
@@ -67,8 +67,8 @@ class ColorScheme(Rhyton):
         """
         Inits a new ColorScheme instance.
         """
-        self.flag = Rhyton.COLOR_SCHEMES
-        self.schemes = ry.DocumentConfigStorage().get(
+        self.flag = Rhyton.EXTENSION_COLOR_SCHEMES
+        self.schemes = DocumentConfigStorage().get(
             self.flag, defaultdict())
         self.defaultColors = [
                             '#F44336', '#E91E63', '#9C27B0', '#673AB7',
@@ -139,7 +139,7 @@ class ColorScheme(Rhyton):
 
         names = [scheme[cls.NAME] for scheme in ColorScheme().schemes
                          if not scheme[cls.NAME] in excludeSchemes]
-        schemeName = ry.SelectionWindow.show(sorted(names),
+        schemeName = SelectionWindow.show(sorted(names),
                 message='Choose Color Scheme:')
         if not schemeName:
             return None
@@ -159,7 +159,7 @@ class ColorScheme(Rhyton):
         Returns:
             dict: Same return as ElementUserText but with key "color" added.
         """
-        keys = ry.ElementUserText.getValues(guids, keys=schemeName)
+        keys = ElementUserText.getValues(guids, keys=schemeName)
         keyColors = ColorScheme().schemes.get(schemeName)
         if not keyColors:
             keyColors = ColorScheme().generate(keys)
@@ -170,7 +170,7 @@ class ColorScheme(Rhyton):
             ColorScheme().update(schemeName, keys)
             keyColors = ColorScheme().schemes.get(schemeName)
 
-        objectData = ry.ElementUserText.get(guids, keys=schemeName)
+        objectData = ElementUserText.get(guids, keys=schemeName)
         for entry in objectData:
             value = entry.get(schemeName)
             if value:
@@ -179,7 +179,7 @@ class ColorScheme(Rhyton):
                 entry[cls.COLOR] = cls.HEX_WHITE
                 entry[schemeName] = cls.NOT_AVAILABLE
 
-        ry.ElementOverrides.apply(objectData)
+        ElementOverrides.apply(objectData)
         return objectData
 
     @classmethod
@@ -192,16 +192,16 @@ class ColorScheme(Rhyton):
             schemeName (str): The name of the color scheme.
             gradient (list): Two RGB colors: [start, end]
         """
-        rawValues = ry.ElementUserText.getValues(guids, keys=schemeName)
+        rawValues = ElementUserText.getValues(guids, keys=schemeName)
         values = sorted(rawValues)
-        keyColors = ry.ColorScheme().generate(values, gradient=gradient)
-        objectData = ry.ElementUserText.get(guids, keys=schemeName)
+        keyColors = ColorScheme().generate(values, gradient=gradient)
+        objectData = ElementUserText.get(guids, keys=schemeName)
         for entry in objectData:
             value = entry.get(schemeName)
             if value:
                 entry[cls.COLOR] = keyColors[value]
 
-        ry.ElementOverrides.apply(objectData)
+        ElementOverrides.apply(objectData)
         return objectData
 
     def generate(self, keys, excludeColors=None, gradient=False):
@@ -265,7 +265,7 @@ class ColorScheme(Rhyton):
             
             self.schemes[schemeName].update(tempKeyColors)
 
-        ry.DocumentConfigStorage().save(self.flag, self.schemes)
+        DocumentConfigStorage().save(self.flag, self.schemes)
 
     def save(self, schemeName, keyValues):
         """
@@ -285,7 +285,7 @@ class ColorScheme(Rhyton):
         scheme = dict()
         scheme[schemeName] = keyValues
         self.schemes.update(scheme)
-        ry.DocumentConfigStorage().save(self.flag, self.schemes)
+        DocumentConfigStorage().save(self.flag, self.schemes)
 
     def delete(self, schemeName):
         """
@@ -297,7 +297,7 @@ class ColorScheme(Rhyton):
         if schemeName in self.schemes:
             del self.schemes[schemeName]
         
-        ry.DocumentConfigStorage().save(self.flag, self.schemes)
+        DocumentConfigStorage().save(self.flag, self.schemes)
 
     def getColors(self, count, excludeColors=[]):
         """
@@ -308,7 +308,6 @@ class ColorScheme(Rhyton):
         Returns:
             string: A list of colors
         """
-
         self.defaultColors = self._filterColors(
                 excludeColors, self.defaultColors)
         

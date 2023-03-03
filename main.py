@@ -25,16 +25,14 @@ class Rhyton(object):
     """
 
     RHYTON_CONFIG = 'RHYTON_CONFIG'
-    RHYTON_GROUP = 'self.group'
-    TEXTDOTS = 'self.textdots'
-    ORIGINAL_COLORS = 'self.originalColors'
-    COLOR_SCHEMES = 'self.colorschemes'
-    DOT_SETTINGS = '.settings'
+    EXTENSION_NAME = 'rhyton'
+    GROUP = '.group'
+    TEXTDOTS = '.textDots'
+    ORIGINAL_COLORS = '.originalColors'
+    COLOR_SCHEMES = '.colorSchemes'
+    SETTINGS = '.settings'
     DELIMITER = "_"
     WHITESPACE = " "
-    KEY_PREFIX_NAME = 'keyPrefix'
-    UNIT_SUFFIX_NAME = 'unitSuffix'
-    ROUNDING_DECIMALS_NAME = 'roundingDecimals'
     GUID = "guid"
     COLOR = 'color'
     COLOR_SOURCE = 'colorSource'
@@ -48,6 +46,18 @@ class Rhyton(object):
     FONT = 'Arial'
     NAME = 'name'
 
+    # Extension settings
+    KEY_PREFIX_NAME = 'key_prefix'
+    UNIT_SUFFIX_NAME = 'unit_suffix'
+    ROUNDING_DECIMALS_NAME = 'rounding_decimals'
+    KEY_PREFIX = "ry_"
+    UNIT_SUFFIX = "m"
+    ROUNDING_DECIMALS = 2
+    EXTENSION_GROUP = EXTENSION_NAME + GROUP
+    EXTENSION_TEXTDOTS = EXTENSION_NAME + TEXTDOTS
+    EXTENSION_ORIGINAL_COLORS = EXTENSION_NAME + ORIGINAL_COLORS
+    EXTENSION_COLOR_SCHEMES = EXTENSION_NAME + COLOR_SCHEMES
+    EXTENSION_SETTINGS = EXTENSION_NAME + SETTINGS
 
     def __init__(self, extensionName):
         """
@@ -57,17 +67,22 @@ class Rhyton(object):
         Args:
             extensionName (str): The name of the extension that is calling Rhyton.
         """
-        self.extensionName = extensionName
-        Rhyton.settings = self.getSettings()
-        Rhyton.KEY_PREFIX = Rhyton.settings[self.KEY_PREFIX_NAME]
-        Rhyton.UNIT_SUFFIX = Rhyton.settings[self.UNIT_SUFFIX_NAME]
-        Rhyton.ROUNDING_DECIMALS = Rhyton.settings[self.ROUNDING_DECIMALS_NAME]
-    
-    def saveSettings(
-            self,
-            keyPrefix="ry_",
-            unitSuffix="m",
-            roundingDecimals=2):
+        Rhyton.EXTENSION_NAME = extensionName
+        Rhyton.EXTENSION_GROUP = extensionName + self.GROUP
+        Rhyton.EXTENSION_TEXTDOTS = extensionName + self.TEXTDOTS
+        Rhyton.EXTENSION_ORIGINAL_COLORS = extensionName + self.ORIGINAL_COLORS
+        Rhyton.EXTENSION_COLOR_SCHEMES = extensionName + self.COLOR_SCHEMES
+        Rhyton.EXTENSION_SETTINGS = extensionName + self.SETTINGS
+
+        # # update the current class instance as well
+        # self.EXTENSION_SETTINGS = Rhyton.EXTENSION_SETTINGS
+        self.settings = self.getSettings()
+        self.saveSettings(self.settings)
+        Rhyton.KEY_PREFIX = self.settings[self.KEY_PREFIX_NAME]
+        Rhyton.UNIT_SUFFIX = self.settings[self.UNIT_SUFFIX_NAME]
+        Rhyton.ROUNDING_DECIMALS = int(self.settings[self.ROUNDING_DECIMALS_NAME])
+
+    def saveSettings(self, settings):
         """
         Saves a configuration to the document text.
 
@@ -78,9 +93,9 @@ class Rhyton(object):
             roundingDecimals (int, optional): The rounding precision for display values. Defaults to 2.
         """
         import document
-        settings = self.generateSettings(keyPrefix, unitSuffix, roundingDecimals)
+
         document.DocumentConfigStorage().save(
-                self.extensionName + self.DOT_SETTINGS, settings)
+                self.EXTENSION_SETTINGS, settings)
     
     def getSettings(self):
         """
@@ -93,14 +108,18 @@ class Rhyton(object):
             dict: The configuration.
         """
         import document
+
         config = document.DocumentConfigStorage().get(
-                self.extensionName + self.DOT_SETTINGS, None)
+                self.EXTENSION_SETTINGS, None)
         if config:
             return config
         else:
             return self.generateSettings()
 
-    def generateSettings(self, keyPrefix="ry_", unitSuffix="m", roundingDecimals=2):
+    def generateSettings(self,
+                keyPrefix=KEY_PREFIX,
+                unitSuffix=UNIT_SUFFIX,
+                roundingDecimals=ROUNDING_DECIMALS):
         """
         Generates a settings configuration.
 
