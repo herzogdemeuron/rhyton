@@ -25,7 +25,7 @@ class CsvExporter(ExportBase):
         import itertools
         file = cls.prepFile(file, 'csv')
         keys = [d.keys() for d in data]
-        headers = list(set(itertools.chain.from_iterable(keys)))
+        headers = sorted(list(set(itertools.chain.from_iterable(keys))))
 
         with open(file, 'wb') as f:
             writer = csv.DictWriter(

@@ -298,7 +298,7 @@ class ElementUserText(Rhyton):
                             "string_key": "Value",
                             "number_key": 0
                         }
-                    ], keyPrefix='xyz_')
+                    ])
 
             # or
 
@@ -322,9 +322,10 @@ class ElementUserText(Rhyton):
             guid = entry[cls.GUID]
             del entry[cls.GUID]
             for key, value in entry.items():
+                key = Format.key(cls.DELIMITER.join([cls.EXTENSION_NAME, key]))
                 rs.SetUserText(
                         guid,
-                        key=Format.key(cls.KEY_PREFIX + key),
+                        key=key,
                         value=Format.value(value))
 
     @classmethod
@@ -428,6 +429,13 @@ class ElementUserText(Rhyton):
                     values.append(float(value))
         
         return sum(values)
+    
+    @staticmethod
+    def remove(guids, keys):
+        guids = toList(guids)
+        for guid in guids:
+            for key in keys:
+                rs.SetUserText(guid, key)
 
 
 class Group(Rhyton):
@@ -471,6 +479,48 @@ class Group(Rhyton):
             rs.DeleteGroup(group)
 
 
+class Layer(Rhyton):
+    @staticmethod
+    def maxHierarchy(guids):
+        """
+        Gets the maximum depth of sublayers for the given list of objects.
+        A simple layer return 1, a layer with one sublayer returns 2.
+
+        Args:
+            breps (list(str)): A list of Rhino object ids.
+
+        Returns:
+            int: The maximum depth of nested layers.
+        """
+        return max([len(rs.ObjectLayer(guid).split('::')) for guid in guids])
+    
+    @classmethod
+    def addLayerHierarchy(cls, guids, depth):
+        """
+        Add the layer name for each depth level of sublayers to given entries.
+
+        Args:
+            data (dict): A dictionary or list of dictionaries.
+            depth (int): The maximum depth of sublayer names to add.
+        """
+        guids = toList(guids)
+        for guid in guids:
+            data = dict()
+            data[cls.GUID] = guid
+            layers = rs.ObjectLayer(guid).split('::')[:depth]
+            for index, layer in enumerate(layers, 1):
+                key = cls.DELIMITER.join([cls.LAYER_HIERARCHY, str(index)])
+                data[key] = layer
+        
+            ElementUserText.apply(data)
+    
+    @classmethod
+    def removeLayerHierarchy(cls, guids):
+        keys =  ElementUserText.getKeys(guids)
+        keys = [k for k in keys if cls.LAYER_HIERARCHY in k]
+        ElementUserText.remove(guids, keys)
+
+
 def GetBreps(filterByTypes=[8, 16, 1073741824]):
     """
     Gets the currently selected Rhino objects or asks the user to go get some.
@@ -483,7 +533,7 @@ def GetBreps(filterByTypes=[8, 16, 1073741824]):
         1073741824 = Extrusion
 
     Returns:
-        list: A list of Rhino objects ids.
+        list[str]: A list of Rhino objects ids.
     """
     selection = rs.GetObjects(preselect=True, select=True)
     if not selection:

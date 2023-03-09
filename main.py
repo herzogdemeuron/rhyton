@@ -45,12 +45,12 @@ class Rhyton(object):
     JSON = "JSON"
     FONT = 'Arial'
     NAME = 'name'
+    LAYER_HIERARCHY = 'layer_hierarchy'
 
     # Extension settings
     KEY_PREFIX_NAME = 'key_prefix'
     UNIT_SUFFIX_NAME = 'unit_suffix'
     ROUNDING_DECIMALS_NAME = 'rounding_decimals'
-    KEY_PREFIX = "ry_"
     UNIT_SUFFIX = "m"
     ROUNDING_DECIMALS = 2
     EXTENSION_GROUP = EXTENSION_NAME + GROUP
@@ -74,11 +74,8 @@ class Rhyton(object):
         Rhyton.EXTENSION_COLOR_SCHEMES = extensionName + self.COLOR_SCHEMES
         Rhyton.EXTENSION_SETTINGS = extensionName + self.SETTINGS
 
-        # # update the current class instance as well
-        # self.EXTENSION_SETTINGS = Rhyton.EXTENSION_SETTINGS
         self.settings = self.getSettings()
         self.saveSettings(self.settings)
-        Rhyton.KEY_PREFIX = self.settings[self.KEY_PREFIX_NAME]
         Rhyton.UNIT_SUFFIX = self.settings[self.UNIT_SUFFIX_NAME]
         Rhyton.ROUNDING_DECIMALS = int(self.settings[self.ROUNDING_DECIMALS_NAME])
 
@@ -117,7 +114,6 @@ class Rhyton(object):
             return self.generateSettings()
 
     def generateSettings(self,
-                keyPrefix=KEY_PREFIX,
                 unitSuffix=UNIT_SUFFIX,
                 roundingDecimals=ROUNDING_DECIMALS):
         """
@@ -132,7 +128,6 @@ class Rhyton(object):
             dict: The resulting configuration.
         """
         config = dict()
-        config[self.KEY_PREFIX_NAME] = keyPrefix
         config[self.UNIT_SUFFIX_NAME] = unitSuffix
         config[self.ROUNDING_DECIMALS_NAME] = roundingDecimals
         return config

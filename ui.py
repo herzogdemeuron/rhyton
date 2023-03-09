@@ -12,14 +12,13 @@ import rhinoscriptsyntax as rs
 from main import Rhyton
 from export import CsvExporter, JsonExporter
 from document import GetBreps, ElementUserText, Group, TextDot
-from document import DocumentConfigStorage, ElementOverrides
+from document import DocumentConfigStorage, ElementOverrides, Layer
 from utils import Format, groupGuidsBy
 
 class Visualize(Rhyton):
     """
     Class for visualizing user text on Rhino objects.
     """
-    @classmethod
     def byGroup(self):
         """
         Visualizes a set of Rhino objects and their user text:
@@ -55,7 +54,6 @@ class Visualize(Rhyton):
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
 
-    @classmethod
     def sumTotal(self):
         from color import ColorScheme
 
@@ -81,7 +79,6 @@ class Visualize(Rhyton):
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
 
-    @classmethod
     def byValue(self):
         from color import ColorScheme
 
@@ -118,7 +115,6 @@ class Visualize(Rhyton):
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
     
-    @classmethod
     def reset(self):
         preSelection = rs.SelectedObjects()
         resetAll = 'select'
@@ -169,6 +165,7 @@ class ColorSchemeEditor:
 class Export(Rhyton):
 
     def __init__(self):
+
         breps = GetBreps()
         if not breps:
             return
@@ -176,15 +173,25 @@ class Export(Rhyton):
         exportMethod = SelectionWindow.show(
                 [self.CSV, self.JSON],
                 message='Select export format:')
-        keys = ElementUserText.getKeys(breps)
-        # add memory to remember state of checkboxes
-        selectedKeys = SelectionWindow.showBoxes(keys)
-        selectedKeys = [key[0] for key in selectedKeys if key[1] == True]
+        if not exportMethod:
+            return
+        
+        layerHierachyDepth = Layer.maxHierarchy(breps)
+        Layer.addLayerHierarchy(breps, layerHierachyDepth)
 
+        # add memory to remember state of checkboxes
+        keys = sorted(list(ElementUserText.getKeys(breps)))
+        selectedKeys = SelectionWindow.showBoxes(keys)
+        if not selectedKeys:
+            return
+        
+        selectedKeys = [key[0] for key in selectedKeys if key[1] == True]
         if exportMethod == self.CSV:
             self.toCSV(breps, selectedKeys)
         elif exportMethod == self.JSON:
             self.toJSON(breps, selectedKeys)
+
+        Layer.removeLayerHierarchy(breps)
 
     def toCSV(self, guids, keys):
         data = ElementUserText.get(guids, keys)
