@@ -20,7 +20,7 @@ class Visualize(Rhyton):
     Class for visualizing user text on Rhino objects.
     """
     @classmethod
-    def byGroup(cls):
+    def byGroup(self):
         """
         Visualizes a set of Rhino objects and their user text:
         The user input 'Parameter to Group By' is used for coloring
@@ -47,16 +47,16 @@ class Visualize(Rhyton):
         
         rs.EnableRedraw(False)
         objectData = ColorScheme.apply(breps, selectedKey)
-        objectData = groupGuidsBy(objectData, [selectedKey, cls.COLOR])
+        objectData = groupGuidsBy(objectData, [selectedKey, self.COLOR])
         objectData = TextDot.add(objectData, selectedValue)
         for item in objectData:
-            Group.create(item[cls.GUID], item[selectedKey])
+            Group.create(item[self.GUID], item[selectedKey])
         
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
 
     @classmethod
-    def sumTotal(cls):
+    def sumTotal(self):
         from color import ColorScheme
 
         breps = GetBreps()
@@ -71,18 +71,18 @@ class Visualize(Rhyton):
         
         rs.EnableRedraw(False)
         objectData = {}
-        objectData[cls.GUID] = breps
-        objectData[cls.COLOR] = ColorScheme().getColors(1)[0]
+        objectData[self.GUID] = breps
+        objectData[self.COLOR] = ColorScheme().getColors(1)[0]
         ElementOverrides.apply(objectData)
         objectData = TextDot.add(objectData, selectedKey)
         for item in objectData:
-            Group.create(item[cls.GUID])
+            Group.create(item[self.GUID])
         
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
 
     @classmethod
-    def byValue(cls):
+    def byValue(self):
         from color import ColorScheme
 
         breps = GetBreps()
@@ -95,13 +95,13 @@ class Visualize(Rhyton):
         if not selectedKey:
             return
         
-        color = rs.GetColor(cls.STANDARD_COLOR_1)
+        color = rs.GetColor(self.STANDARD_COLOR_1)
         if not color:
             return
         
         colorStart = [color[0], color[1], color[2]]
         
-        color = rs.GetColor(cls.STANDARD_COLOR_2)
+        color = rs.GetColor(self.STANDARD_COLOR_2)
         if not color:
             return    
         
@@ -113,13 +113,13 @@ class Visualize(Rhyton):
         objectData = TextDot.add(
                 objectData, selectedKey, aggregate=False)
         for item in objectData:
-            Group.create(item[cls.GUID])
+            Group.create(item[self.GUID])
 
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
     
     @classmethod
-    def reset(cls):
+    def reset(self):
         preSelection = rs.SelectedObjects()
         resetAll = 'select'
         if not preSelection:
@@ -140,7 +140,7 @@ class Visualize(Rhyton):
         elif resetAll == 'reset':
             rs.EnableRedraw(False)
             data = DocumentConfigStorage().get(
-                    cls.EXTENSION_ORIGINAL_COLORS, dict())
+                    self.EXTENSION_ORIGINAL_COLORS, dict())
             if not data:
                 print('ERROR: No info about original colors available, select elements and try again.')
 
@@ -148,9 +148,9 @@ class Visualize(Rhyton):
             Group.dissolve(guids)
             ElementOverrides.clear(guids)
             textDots = DocumentConfigStorage().get(
-                    cls.EXTENSION_TEXTDOTS, dict()).keys()
+                    self.EXTENSION_TEXTDOTS, dict()).keys()
             rs.DeleteObjects(textDots)
-            DocumentConfigStorage().save(cls.EXTENSION_TEXTDOTS, None)
+            DocumentConfigStorage().save(self.EXTENSION_TEXTDOTS, None)
 
         rs.EnableRedraw(True)
     
@@ -168,30 +168,30 @@ class ColorSchemeEditor:
 
 class Export(Rhyton):
 
-    @classmethod
-    def __init__(cls):
+    def __init__(self):
         breps = GetBreps()
         if not breps:
             return
         
         exportMethod = SelectionWindow.show(
-                [cls.CSV, cls.JSON],
+                [self.CSV, self.JSON],
                 message='Select export format:')
-        keys = ElementUserText.getKeys()
+        keys = ElementUserText.getKeys(breps)
         # add memory to remember state of checkboxes
         selectedKeys = SelectionWindow.showBoxes(keys)
+        selectedKeys = [key[0] for key in selectedKeys if key[1] == True]
 
-        if exportMethod == cls.CSV:
-            Export.toCSV(breps, selectedKeys)
-        elif exportMethod == cls.JSON:
-            exportMethod.toJSON(breps, selectedKeys)
+        if exportMethod == self.CSV:
+            self.toCSV(breps, selectedKeys)
+        elif exportMethod == self.JSON:
+            self.toJSON(breps, selectedKeys)
 
-    def toCSV(cls, guids, keys):
+    def toCSV(self, guids, keys):
         data = ElementUserText.get(guids, keys)
         file = CsvExporter.write(data)
         os.startfile(file)
 
-    def toJSON(cls, guids, keys):
+    def toJSON(self, guids, keys):
         data = ElementUserText.get(guids, keys)
         file = JsonExporter.write(data)
         os.startfile(file)

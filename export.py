@@ -22,13 +22,15 @@ class CsvExporter(ExportBase):
     
     @classmethod
     def write(cls, data, file=None):
+        import itertools
         file = cls.prepFile(file, 'csv')
-        headers = set().union(*(d.keys() for d in data))
+        keys = [d.keys() for d in data]
+        headers = list(set(itertools.chain.from_iterable(keys)))
 
-        with open(file, 'w', newline='') as f:
+        with open(file, 'wb') as f:
             writer = csv.DictWriter(
                     f,
-                    fieldnames=headers.sort(),
+                    fieldnames=headers,
                     extrasaction='ignore',
                     dialect='excel')
             writer.writeheader()
@@ -38,29 +40,30 @@ class CsvExporter(ExportBase):
 
     @staticmethod
     def append(data, file):
-        try:
-            with open(file, 'r', newline='') as f:
-                reader = csv.reader(f, dialect='excel')
-                headers = next(reader)
-        except FileNotFoundError:
-            print("File does not exist.")
+        # try:
+        #     with open(file, 'rb') as f:
+        #         reader = csv.reader(f, dialect='excel')
+        #         headers = next(reader)
+        # except FileNotFoundError:
+        #     print("File does not exist.")
         
-        if headers:
-            with open(file, 'a', newline='') as f:
-                writer = csv.DictWriter(
-                        f,
-                        fieldnames=headers,
-                        extrasaction='ignore',
-                        dialect='excel')
-                writer.writerows(data)
+        # if headers:
+        #     with open(file, 'a', newline='') as f:
+        #         writer = csv.DictWriter(
+        #                 f,
+        #                 fieldnames=headers,
+        #                 extrasaction='ignore',
+        #                 dialect='excel')
+        #         writer.writerows(data)
 
-            return file
+        #     return file
+        pass
 
 
 class JsonExporter(ExportBase):
     
     @classmethod
-    def write(cls, file, data):
+    def write(cls, data, file=None):
         file = cls.prepFile(file, 'json')
         with open(file, 'w') as f:
             f.write(json.dumps(data))
