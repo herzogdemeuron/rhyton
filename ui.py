@@ -171,14 +171,37 @@ class Visualize(Rhyton):
         rs.EnableRedraw(True)
     
 
-class ColorSchemeEditor:
-        # show dialog to pick from available color schemes
-        # enter edit mode for selected color scheme
-        # load button
-        # export button
+class ColorSchemeEditor(Rhyton):
+    def __init__(self):
+        from color import ColorScheme
+        schemeName = self.showSchemes()
+        if not schemeName:
+            return
+        
+        keyValues = self.showColors(schemeName)
+        if not keyValues:
+            return
+        
+        ColorScheme().save(schemeName, keyValues)
+    
+    @classmethod
+    def showSchemes(cls):
+        from color import ColorScheme
+        return SelectionWindow.show(
+                ColorScheme().schemes.keys(), message="Select Color Scheme:")
+
+    @classmethod
+    def showColors(cls, schemeName):
+        from color import ColorScheme
+        scheme = ColorScheme().schemes.get(schemeName)
+        return SelectionWindow.dictBox(scheme, message=schemeName)
     
     @staticmethod
-    def show():
+    def importScheme():
+        pass
+
+    @staticmethod
+    def exportScheme():
         pass
 
 
