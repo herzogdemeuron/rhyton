@@ -222,13 +222,11 @@ class Export(Rhyton):
             [self.EXTENSION_NAME, self.EXPORT_CHECKBOXES])
         defaults = DocumentConfigStorage().get(
                 checkboxSettingsFlag, dict())
-        print(defaults, 'defaults from storage')
         for key in keys:
             if not key in defaults:
                 defaults[key] = True
 
         defaults = [(k, v) for k, v in defaults.items() if k in keys]
-        print(defaults, 'processed defaults')
         return defaults
 
     def setCheckboxDefaults(self, newDefaults):
