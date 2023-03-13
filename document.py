@@ -1,4 +1,5 @@
 """
+Module for modifying the rhino document.
 This is the only module in this package that actually modifies the Rhino document.
 """
 # python standard imports
@@ -21,7 +22,7 @@ class ElementOverrides(Rhyton):
     @classmethod
     def apply(cls, overrides):
         """
-        Set the color for given elements. The original color and color source
+        Sets the colors for given elements. The original colors and color sources
         will be stored alongside the objects id in the document user text.
         When an objects is overridden by rhyton for a second time, 
         the original color and color source will remain as they are.
@@ -54,7 +55,8 @@ class ElementOverrides(Rhyton):
         from color import Color
 
         overrides = toList(overrides)
-        originalColors = dict()
+        originalColors = DocumentConfigStorage().get(
+                cls.EXTENSION_ORIGINAL_COLORS, dict())
 
         for override in overrides:
             guids = override[cls.GUID]
@@ -63,10 +65,12 @@ class ElementOverrides(Rhyton):
             for guid in guids:
                 color = rs.ObjectColor(guid)
                 color = tuple([color[0], color[1], color[2]])
-                original = dict()
-                original[cls.COLOR] = Color.RGBtoHEX(color)
-                original[cls.COLOR_SOURCE] = rs.ObjectColorSource(guid)
-                originalColors[guid] = original
+                if not guid in originalColors:
+                    original = dict()
+                    original[cls.COLOR] = Color.RGBtoHEX(color)
+                    original[cls.COLOR_SOURCE] = rs.ObjectColorSource(guid)
+                    originalColors[guid] = original
+                    
                 rs.ObjectColor(
                         guid,
                         Color.HEXtoRGB(
