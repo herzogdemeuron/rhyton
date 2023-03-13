@@ -19,7 +19,8 @@ class Visualize(Rhyton):
     """
     Class for visualizing user text on Rhino objects.
     """
-    def byGroup(self):
+    @classmethod
+    def byGroup(cls):
         """
         Visualizes a set of Rhino objects and their user text:
         The user input 'Parameter to Group By' is used for coloring
@@ -46,15 +47,16 @@ class Visualize(Rhyton):
         
         rs.EnableRedraw(False)
         objectData = ColorScheme.apply(breps, selectedKey)
-        objectData = groupGuidsBy(objectData, [selectedKey, self.COLOR])
+        objectData = groupGuidsBy(objectData, [selectedKey, cls.COLOR])
         objectData = TextDot.add(objectData, selectedValue)
         for item in objectData:
-            Group.create(item[self.GUID], item[selectedKey])
+            Group.create(item[cls.GUID], item[selectedKey])
         
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
 
-    def sumTotal(self):
+    @classmethod
+    def sumTotal(cls):
         from color import ColorScheme
 
         breps = GetBreps()
@@ -69,17 +71,18 @@ class Visualize(Rhyton):
         
         rs.EnableRedraw(False)
         objectData = {}
-        objectData[self.GUID] = breps
-        objectData[self.COLOR] = ColorScheme().getColors(1)[0]
+        objectData[cls.GUID] = breps
+        objectData[cls.COLOR] = ColorScheme().getColors(1)[0]
         ElementOverrides.apply(objectData)
         objectData = TextDot.add(objectData, selectedKey)
         for item in objectData:
-            Group.create(item[self.GUID])
+            Group.create(item[cls.GUID])
         
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
 
-    def byValue(self):
+    @classmethod
+    def byValue(cls):
         from color import ColorScheme
 
         breps = GetBreps()
@@ -92,13 +95,13 @@ class Visualize(Rhyton):
         if not selectedKey:
             return
         
-        color = rs.GetColor(self.STANDARD_COLOR_1)
+        color = rs.GetColor(cls.STANDARD_COLOR_1)
         if not color:
             return
         
         colorStart = [color[0], color[1], color[2]]
         
-        color = rs.GetColor(self.STANDARD_COLOR_2)
+        color = rs.GetColor(cls.STANDARD_COLOR_2)
         if not color:
             return    
         
@@ -110,12 +113,13 @@ class Visualize(Rhyton):
         objectData = TextDot.add(
                 objectData, selectedKey, aggregate=False)
         for item in objectData:
-            Group.create(item[self.GUID])
+            Group.create(item[cls.GUID])
 
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
     
-    def reset(self):
+    @classmethod
+    def reset(cls):
         preSelection = rs.SelectedObjects()
         resetAll = 'select'
         if not preSelection:
@@ -136,7 +140,7 @@ class Visualize(Rhyton):
         elif resetAll == 'reset':
             rs.EnableRedraw(False)
             data = DocumentConfigStorage().get(
-                    self.EXTENSION_ORIGINAL_COLORS, dict())
+                    cls.EXTENSION_ORIGINAL_COLORS, dict())
             if not data:
                 print('ERROR: No info about original colors available, select elements and try again.')
 
@@ -144,9 +148,9 @@ class Visualize(Rhyton):
             Group.dissolve(guids)
             ElementOverrides.clear(guids)
             textDots = DocumentConfigStorage().get(
-                    self.EXTENSION_TEXTDOTS, dict()).keys()
+                    cls.EXTENSION_TEXTDOTS, dict()).keys()
             rs.DeleteObjects(textDots)
-            DocumentConfigStorage().save(self.EXTENSION_TEXTDOTS, None)
+            DocumentConfigStorage().save(cls.EXTENSION_TEXTDOTS, None)
 
         rs.EnableRedraw(True)
     
@@ -165,7 +169,6 @@ class ColorSchemeEditor:
 class Export(Rhyton):
 
     def __init__(self):
-
         breps = GetBreps()
         if not breps:
             return
@@ -178,14 +181,14 @@ class Export(Rhyton):
         
         layerHierachyDepth = Layer.maxHierarchy(breps)
         Layer.addLayerHierarchy(breps, layerHierachyDepth)
-
-        # add memory to remember state of checkboxes
         keys = sorted(list(ElementUserText.getKeys(breps)))
-        selectedKeys = SelectionWindow.showBoxes(keys)
-        if not selectedKeys:
+        options = self.getCheckboxDefaults(keys)
+        selectedOptions = SelectionWindow.showBoxes(options)
+        if not selectedOptions:
             return
         
-        selectedKeys = [key[0] for key in selectedKeys if key[1] == True]
+        self.setCheckboxDefaults(selectedOptions)
+        selectedKeys = [key[0] for key in selectedOptions if key[1] == True]
         if exportMethod == self.CSV:
             self.toCSV(breps, selectedKeys)
         elif exportMethod == self.JSON:
@@ -202,6 +205,47 @@ class Export(Rhyton):
         data = ElementUserText.get(guids, keys)
         file = JsonExporter.write(data)
         os.startfile(file)
+
+    def getCheckboxDefaults(self, keys):
+        """
+        Loads checkbox defaults from the document config storage for given keys.
+        If no default is available in the document config storage, <True> will
+        be used.
+
+        Args:
+            keys (list(str)): A list of keys to get default values for.
+
+        Returns:
+            tuple: A list of tuples indicating the defaults for given values.
+        """
+        checkboxSettingsFlag = '.'.join(
+            [self.EXTENSION_NAME, self.EXPORT_CHECKBOXES])
+        defaults = DocumentConfigStorage().get(
+                checkboxSettingsFlag, dict())
+        print(defaults, 'defaults from storage')
+        for key in keys:
+            if not key in defaults:
+                defaults[key] = True
+
+        defaults = [(k, v) for k, v in defaults.items() if k in keys]
+        print(defaults, 'processed defaults')
+        return defaults
+
+    def setCheckboxDefaults(self, newDefaults):
+        """
+        Updates the document config storage with new export checkbox defaults
+        for the current extension.
+
+        Args:
+            defaults (tuple): A list of tuples indicating the default per value.
+        """
+        checkboxSettingsFlag = '.'.join(
+            [self.EXTENSION_NAME, self.EXPORT_CHECKBOXES])
+        defaults = DocumentConfigStorage().get(
+                checkboxSettingsFlag, dict())
+        newDefaults = dict((k, v) for k, v in newDefaults)
+        defaults.update(newDefaults)
+        DocumentConfigStorage().save(checkboxSettingsFlag, defaults)
 
 
 class Settings(Rhyton):
@@ -267,17 +311,13 @@ class SelectionWindow:
         The returns are formatted as shown above.
 
         Args:
-            options (mixed): A list (all checkboxes are unchecked by default)
-                    or list of tuple with pre-defined checkbox states
+            options (list(tuple)): A list of tuples with pre-defined checkbox states
             message (str, optional): The message to the user. Defaults to None.
 
         Returns:
             list(tuple): A list of tuples indicating
                     the name and state of each checkbox.
         """ 
-        if not type(options) == tuple:
-            options = tuple((i, True) for i in options)
-
         return rs.CheckListBox(options, message)
     
     @staticmethod

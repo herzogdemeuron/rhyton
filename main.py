@@ -46,6 +46,7 @@ class Rhyton(object):
     FONT = 'Arial'
     NAME = 'name'
     LAYER_HIERARCHY = 'layer_hierarchy'
+    EXPORT_CHECKBOXES = 'exportCheckboxes'
 
     # Extension settings
     KEY_PREFIX_NAME = 'key_prefix'

@@ -53,8 +53,10 @@ class Format(Rhyton):
         if 'volume' in key.lower():
             suffix = cls.UNIT_SUFFIX + '3'
 
-        print(cls.ROUNDING_DECIMALS)
-        return str(round(number, cls.ROUNDING_DECIMALS)) + suffix
+        if cls.ROUNDING_DECIMALS != 0:
+            return " ".join([str(round(number, cls.ROUNDING_DECIMALS)), suffix])
+        else:
+            return " ".join([str(int(number)), suffix])
     
 
 def displayKey(key, rmPrefix=None):
@@ -129,8 +131,6 @@ def groupGuidsBy(data, keys):
         result.append(newDict)
 
     return result
-
-
 
 
 def removePrefix(string, prefix):
