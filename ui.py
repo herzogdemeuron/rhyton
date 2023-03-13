@@ -45,6 +45,7 @@ class Visualize(Rhyton):
         if not selectedValue:
             return
         
+        cls.reset()
         rs.EnableRedraw(False)
         objectData = ColorScheme.apply(breps, selectedKey)
         objectData = groupGuidsBy(objectData, [selectedKey, cls.COLOR])
@@ -57,6 +58,11 @@ class Visualize(Rhyton):
 
     @classmethod
     def sumTotal(cls):
+        """
+        Visualizes the total for selected parameter.
+        Groups selected objects and places a text dot to display the total.
+        Non-number parameter values will result in a simple object count.
+        """
         from color import ColorScheme
 
         breps = GetBreps()
@@ -69,6 +75,7 @@ class Visualize(Rhyton):
         if not selectedKey:
             return
         
+        cls.reset()
         rs.EnableRedraw(False)
         objectData = {}
         objectData[cls.GUID] = breps
@@ -83,12 +90,16 @@ class Visualize(Rhyton):
 
     @classmethod
     def byValue(cls):
+        """
+        Visualizes the value of selected parameter for each object individually.
+        Applies a user-defined color gradient to the values.
+        """
         from color import ColorScheme
 
         breps = GetBreps()
         if not breps:
             return
-    
+
         keys = ElementUserText.getKeys(breps)
         selectedKey = SelectionWindow.show(
                 options=keys, message='Select Parameter to visualize:')
@@ -107,6 +118,7 @@ class Visualize(Rhyton):
         
         colorEnd = [color[0], color[1], color[2]]
 
+        cls.reset()
         rs.EnableRedraw(False)
         objectData = ColorScheme.applyGradient(
                 breps, selectedKey, [colorStart, colorEnd])
@@ -120,6 +132,10 @@ class Visualize(Rhyton):
     
     @classmethod
     def reset(cls):
+        """
+        Resets the visualization for 'all' or 'selected' objects.
+        Ungroups visualized objects.
+        """
         preSelection = rs.SelectedObjects()
         resetAll = 'select'
         if not preSelection:
@@ -169,6 +185,12 @@ class ColorSchemeEditor:
 class Export(Rhyton):
 
     def __init__(self):
+        """
+        Inits a new export Instance. Asks the user to select the export format,
+        gets memorized checkbox values for available keys. Presents those 
+        to the user to select the keys for export. Stores checkbox states 
+        and exports keys to selected output format.
+        """
         breps = GetBreps()
         if not breps:
             return
@@ -197,11 +219,27 @@ class Export(Rhyton):
         Layer.removeLayerHierarchy(breps)
 
     def toCSV(self, guids, keys):
+        """
+        Exports the values for provided keys to CSV.
+        Opens the new file.
+
+        Args:
+            guids (list(str)): A list of Rhino object ids.
+            keys (list(str)): A list of document user text keys to export.
+        """
         data = ElementUserText.get(guids, keys)
         file = CsvExporter.write(data)
         os.startfile(file)
 
     def toJSON(self, guids, keys):
+        """
+        Exports the values for provided keys to JSON.
+        Opens the new file.
+
+        Args:
+            guids (list(str)): A list of Rhino object ids.
+            keys (list(str)): A list of document user text keys to export.
+        """
         data = ElementUserText.get(guids, keys)
         file = JsonExporter.write(data)
         os.startfile(file)
@@ -247,6 +285,9 @@ class Export(Rhyton):
 
 
 class Settings(Rhyton):
+    """
+    Class for handling extension settings.
+    """
     def __init__(self, extensionName):
         super(Settings, self).__init__(extensionName)
         """
