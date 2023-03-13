@@ -124,29 +124,6 @@ class ColorScheme(Rhyton):
         return scheme
 
     @classmethod
-    def getFromUser(cls, excludeSchemes=None):
-        """
-        Asks the user to select a rhyton color scheme.
-
-        Args:
-            excludeSchemes (string, optional): The name of one or more schemes to exclude. Defaults to None.
-
-        Returns:
-            dict: The selected rhyton color scheme
-        """
-        if not type(excludeSchemes) == list:
-            excludeSchemes = [excludeSchemes]
-
-        names = [scheme[cls.NAME] for scheme in ColorScheme().schemes
-                         if not scheme[cls.NAME] in excludeSchemes]
-        schemeName = SelectionWindow.show(sorted(names),
-                message='Choose Color Scheme:')
-        if not schemeName:
-            return None
-
-        return ColorScheme().schemes.get(schemeName)
-
-    @classmethod
     def apply(cls, guids, schemeName):
         """
         Applies a rhyton color scheme to given objects.
