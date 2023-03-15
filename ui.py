@@ -4,6 +4,7 @@ Provides ready-made functions that can be used by buttons in any extension.
 """
 # python standard imports
 import os
+from datetime import datetime
 
 # rhino imports
 import rhinoscriptsyntax as rs
@@ -11,7 +12,7 @@ import rhinoscriptsyntax as rs
 # rhyton imports
 from main import Rhyton
 from export import CsvExporter, JsonExporter
-from document import GetBreps, ElementUserText, Group, TextDot
+from document import GetBreps, ElementUserText, Group, TextDot, GetFilePath
 from document import DocumentConfigStorage, ElementOverrides, Layer
 from utils import Format, groupGuidsBy
 
@@ -156,7 +157,7 @@ class Visualize(Rhyton):
         elif resetAll == 'reset':
             rs.EnableRedraw(False)
             data = DocumentConfigStorage().get(
-                    cls.EXTENSION_ORIGINAL_COLORS, dict())
+                    Rhyton().extensionOriginalColors, dict())
             if not data:
                 print('ERROR: No info about original colors available, select elements and try again.')
 
@@ -164,9 +165,9 @@ class Visualize(Rhyton):
             Group.dissolve(guids)
             ElementOverrides.clear(guids)
             textDots = DocumentConfigStorage().get(
-                    cls.EXTENSION_TEXTDOTS, dict()).keys()
+                    Rhyton().extensionTextdots, dict()).keys()
             rs.DeleteObjects(textDots)
-            DocumentConfigStorage().save(cls.EXTENSION_TEXTDOTS, None)
+            DocumentConfigStorage().save(Rhyton().extensionTextdots, None)
 
         rs.EnableRedraw(True)
     
@@ -226,14 +227,12 @@ class Export(Rhyton):
         
         layerHierachyDepth = Layer.maxHierarchy(breps)
         Layer.addLayerHierarchy(breps, layerHierachyDepth)
-        keys = sorted(list(ElementUserText.getKeys(breps)))
-        options = self.getCheckboxDefaults(keys)
-        selectedOptions = SelectionWindow.showBoxes(options)
-        if not selectedOptions:
+
+        flag = '.'.join([self.extensionName, self.EXPORT_CHECKBOXES])
+        selectedKeys = self.getExportKeys(flag, breps)
+        if not selectedKeys:
             return
-        
-        self.setCheckboxDefaults(selectedOptions)
-        selectedKeys = [key[0] for key in selectedOptions if key[1] == True]
+
         if exportMethod == self.CSV:
             self.toCSV(breps, selectedKeys)
         elif exportMethod == self.JSON:
@@ -267,44 +266,70 @@ class Export(Rhyton):
         file = JsonExporter.write(data)
         os.startfile(file)
 
-    def getCheckboxDefaults(self, keys):
+    @classmethod
+    def getExportKeys(cls, flag, guids):
         """
-        Loads checkbox defaults from the document config storage for given keys.
+        Presents a checkbox to the user to pick the user text keys for export.
+        The checkbox states are stored in the document config storage and
+        are used a the default values for the next time the dialog is shown.
+
+        Args:
+            flag (str): The identifier for the default values in the document config storage.
+            guids (str): A list of Rhino object ids.
+
+        Returns:
+            list(str): A list of user text keys.
+        """
+        keys = sorted(list(ElementUserText.getKeys(guids)))
+        options = cls.getCheckboxDefaults(flag, keys=keys)
+        selectedOptions = SelectionWindow.showBoxes(options)
+        if not selectedOptions:
+            return
+        
+        cls.setCheckboxDefaults(flag, selectedOptions)
+        selectedKeys = [key[0] for key in selectedOptions if key[1] == True]
+        return selectedKeys
+
+    @staticmethod
+    def getCheckboxDefaults(flag, keys=[]):
+        """
+        Loads export checkbox defaults from the document config storage for given keys.
         If no default is available in the document config storage, <True> will
         be used.
 
         Args:
+            flag (str): The identifier for the default values in the document config storage.
             keys (list(str)): A list of keys to get default values for.
 
         Returns:
             tuple: A list of tuples indicating the defaults for given values.
         """
-        checkboxSettingsFlag = '.'.join(
-            [self.EXTENSION_NAME, self.EXPORT_CHECKBOXES])
-        defaults = DocumentConfigStorage().get(
-                checkboxSettingsFlag, dict())
-        for key in keys:
-            if not key in defaults:
-                defaults[key] = True
+        defaults = DocumentConfigStorage().get(flag, dict())
+        if keys:
+            for key in keys:
+                if not key in defaults:
+                    defaults[key] = True
 
-        defaults = [(k, v) for k, v in defaults.items() if k in keys]
+            defaults = [(k, v) for k, v in defaults.items() if k in keys]
+        else:
+            defaults = [(k, v) for k, v in defaults.items()]
+
         return defaults
 
-    def setCheckboxDefaults(self, newDefaults):
+    @staticmethod
+    def setCheckboxDefaults(flag, newDefaults):
         """
         Updates the document config storage with new export checkbox defaults
         for the current extension.
 
         Args:
+            flag (str): The identifier for the default values in the document config storage.
             defaults (tuple): A list of tuples indicating the default per value.
         """
-        checkboxSettingsFlag = '.'.join(
-            [self.EXTENSION_NAME, self.EXPORT_CHECKBOXES])
-        defaults = DocumentConfigStorage().get(
-                checkboxSettingsFlag, dict())
+        defaults = DocumentConfigStorage().get(flag, dict())
         newDefaults = dict((k, v) for k, v in newDefaults)
         defaults.update(newDefaults)
-        DocumentConfigStorage().save(checkboxSettingsFlag, defaults)
+        DocumentConfigStorage().save(flag, defaults)
 
 
 class Settings(Rhyton):
@@ -321,7 +346,7 @@ class Settings(Rhyton):
         inValidInput = True
         while inValidInput:
             res = SelectionWindow.dictBox(
-                    options=self.settings, message=self.EXTENSION_SETTINGS)
+                    options=self.settings, message=self.extensionSettings)
             if res:
                 try:
                     int(res[self.ROUNDING_DECIMALS_NAME])
@@ -356,7 +381,7 @@ class SelectionWindow:
         if not type(options) == dict:
             options = dict((i, i) for i in options)
 
-        res = rs.ListBox(options.keys(), message, default=options.keys()[0])
+        res = rs.ListBox(sorted(options.keys()), message, default=options.keys()[0])
         if res:
             return options[res]
         
@@ -397,3 +422,179 @@ class SelectionWindow:
                 message)
         if res:
             return dict((k, v) for k, v in zip(options.keys(), res))
+        
+    
+class Powerbi(Rhyton):
+    """
+    Class for opening and updating PowerBI.
+    """
+    CUSTOM_TEMPLATE = "Load Custom Template"
+    POWERBI_DATAFILE = 'C:/temp/rhyton/powerbi.json'
+    POWERBI_TEMPLATES_REPO = 'https://github.com/herzogdemeuron/powerbitemplates.git'
+    POWERBI_TEMPLATES_DIR = "C:\\temp\\rhyton\\powerbitemplates"
+    POWERBI_TEMPLATES_EXTENSION = ".pbit"
+    TIMESTAMP = "timestamp"
+    # fixed keys are necessary to ensure the powerbi visuals do not break
+    VIZ_KEY = 'visualization_parameter'
+    POWERBI_TEMPLATE = '.template'
+
+    @classmethod
+    def show(cls):
+        pbiRunning = cls._processExists('PBIDesktop.exe')
+        if pbiRunning:
+            print("powerbi already running")
+            return
+        
+        template = cls._pickTemplate()
+        if not template:
+            return
+        
+        config = dict()
+        config[cls.POWERBI_TEMPLATE] = template
+        if template == cls.CUSTOM_TEMPLATE:
+            print('custom template')
+            template = GetFilePath(cls.POWERBI_TEMPLATES_EXTENSION)
+            data = cls._getData()
+            if not data:
+                return
+        else:
+            print('regular template')
+            allKeys = ElementUserText.getKeys(rs.AllObjects())
+            vizKey = SelectionWindow.show(allKeys, message="Select Parameter to Visualize:")
+            config[cls.VIZ_KEY] = vizKey
+            fixedKeys = cls.fixedKeys()
+            fixedKeys.append(vizKey)
+            data = cls._getData(fixedKeys=fixedKeys, vizKey=vizKey)
+            if not data:
+                return
+
+        templateFlag = Rhyton().extensionName + cls.POWERBI + cls.POWERBI_TEMPLATE
+        DocumentConfigStorage().save(templateFlag, config)
+
+        JsonExporter.write(data, file=cls.POWERBI_DATAFILE)
+        os.startfile(template)
+        
+    @classmethod
+    def update(cls):
+        templateFlag = Rhyton().extensionName + cls.POWERBI + cls.POWERBI_TEMPLATE
+        config = DocumentConfigStorage().get(templateFlag)
+        if config[cls.POWEBI_TEMPLATE] == cls.CUSTOM_TEMPLATE:
+            data = cls._getData()
+            if not data:
+                return
+        else:
+            vizKey = config.get(cls.VIZ_KEY)
+            fixedKeys = cls.fixedKeys()
+            fixedKeys.append(vizKey)
+            data = cls._getData(fixedKeys=fixedKeys, vizKey=vizKey)
+            if not data:
+                return
+            
+        JsonExporter.append(data, cls.POWERBI_DATAFILE)
+
+    @classmethod
+    def undoUpdate(cls):
+        pass
+
+    @classmethod
+    def _pickTemplate(cls):
+        if not os.path.exists(cls.POWERBI_TEMPLATES_DIR):
+            res = rs.MessageBox(
+                    message="No templates found. Do you want to download the default templates from 'github.com/herzogdemeuron/powerbitemplates'?",
+                    buttons=4)
+            if res == 6:
+                cls._cloneTemplates()
+            else:
+                return
+
+        files = cls.absoluteFilePaths(cls.POWERBI_TEMPLATES_DIR)
+        templates = [os.path.abspath(f) for f in files if f.endswith(cls.POWERBI_TEMPLATES_EXTENSION)]
+        templateNames = [os.path.basename(t).replace(cls.POWERBI_TEMPLATES_EXTENSION, '') for t in templates]
+        options = dict((k, v) for k, v in zip(templateNames, templates))
+        options[cls.CUSTOM_TEMPLATE] = cls.CUSTOM_TEMPLATE
+        return SelectionWindow.show(options, message="Pick PowerBI Template:")
+
+    @classmethod
+    def _getData(cls, fixedKeys=[], vizKey=None):
+        breps = GetBreps()
+        if not breps:
+            return
+        
+        layerHierachyDepth = Layer.maxHierarchy(breps)
+        Layer.addLayerHierarchy(breps, layerHierachyDepth)
+        flag = '.'.join([Rhyton().extensionPowerbi, cls.EXPORT_CHECKBOXES])
+        if fixedKeys:
+            selectedKeys = fixedKeys
+        else:
+            selectedKeys = Export.getExportKeys(flag, breps)
+            if not selectedKeys:
+                return
+
+        data = ElementUserText.get(breps, selectedKeys)
+        Layer.removeLayerHierarchy(breps)
+
+        timeStamp = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+        prefix = Rhyton().extensionName + cls.DELIMITER
+        for d in data:
+            if vizKey and vizKey in d:
+                d[cls.VIZ_KEY] = d.pop(vizKey)
+
+            for key in d.keys():
+                if Rhyton().extensionName in key:
+                    keyNew = key.replace(prefix, '')
+                    d[keyNew] = d.pop(key)
+            d[cls.TIMESTAMP] = timeStamp
+
+        return data
+    
+    @classmethod
+    def _updateTemplates(cls):
+        if os.path.exists(cls.POWERBI_TEMPLATES_DIR):
+            os.rmdir(cls.POWERBI_TEMPLATES_DIR)
+
+        cls._cloneTemplates()
+
+    @classmethod
+    def _cloneTemplates(cls):
+        if not os.path.exists(cls.POWERBI_TEMPLATES_DIR):
+            os.makedirs(cls.POWERBI_TEMPLATES_DIR)
+            import subprocess
+            command = "git clone {} {}".format(
+                    cls.POWERBI_TEMPLATES_REPO, cls.POWERBI_TEMPLATES_DIR)
+            subprocess.Popen(command)
+            subprocess.wait()
+        
+    @staticmethod
+    def _processExists(processName):
+        import subprocess
+        # checks if a process is running or not
+        call = 'TASKLIST', '/FI', 'imagename eq %s' % processName
+        # use buildin check_output right away
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        output = subprocess.check_output(call).decode()
+        # check in last line for process name
+        lastLine = output.strip().split('\r\n')[-1]
+        # because Fail message could be translated
+        return lastLine.lower().startswith(processName.lower())
+    
+    @staticmethod
+    def absoluteFilePaths(directory):
+        for dirpath,_,filenames in os.walk(directory):
+            for f in filenames:
+                yield os.path.abspath(os.path.join(dirpath, f))
+
+    @classmethod
+    def fixedKeys(cls):
+        """
+        Generates fixed keys when needed. This cannot be done as a
+        class variable because the extension name might change 
+
+        Yields:
+            _type_: _description_
+        """
+        name = Rhyton().extensionName
+        return [
+            cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, "1"]),
+            cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, "2"]),
+            cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, "3"])]

@@ -67,7 +67,7 @@ class ColorScheme(Rhyton):
         """
         Inits a new ColorScheme instance.
         """
-        self.flag = Rhyton.EXTENSION_COLOR_SCHEMES
+        self.flag = Rhyton().extensionColorSchemes
         self.schemes = DocumentConfigStorage().get(
             self.flag, defaultdict())
         self.defaultColors = [
@@ -137,15 +137,16 @@ class ColorScheme(Rhyton):
             dict: Same return as ElementUserText but with key "color" added.
         """
         keys = ElementUserText.getValues(guids, keys=schemeName)
-        keyColors = ColorScheme().schemes.get(schemeName)
+        colorScheme = ColorScheme()
+        keyColors = colorScheme.schemes.get(schemeName)
         if not keyColors:
-            keyColors = ColorScheme().generate(keys)
+            keyColors = colorScheme.generate(keys)
             if not keyColors:
                 return None
-            ColorScheme().save(schemeName, keyColors)
+            colorScheme.save(schemeName, keyColors)
         else:
-            ColorScheme().update(schemeName, keys)
-            keyColors = ColorScheme().schemes.get(schemeName)
+            colorScheme.update(schemeName, keys)
+            keyColors = colorScheme.schemes.get(schemeName)
 
         objectData = ElementUserText.get(guids, keys=schemeName)
         for entry in objectData:

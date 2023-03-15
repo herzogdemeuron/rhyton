@@ -71,19 +71,17 @@ class JsonExporter(ExportBase):
         return file
 
     @staticmethod
-    def append(file, data):
-        try:
-            with open(file, 'r') as f:
-                existingData = json.loads(f)
-        except FileNotFoundError:
-            print("File does not exist.")
+    def append(data, file):
+        # try:
+        with open(file, 'r') as f:
+            existingData = json.load(f)
+        print('existing', existingData)
+        # except FileNotFoundError:
+        #     print("File does not exist.")
         
         if existingData:
-            existingData + data
-        else:
-            existingData = data
-
-        with open(file, 'w') as f:
-            f.write(json.dumps(existingData))
+            existingData = existingData + data
+            with open(file, 'w') as f:
+                f.write(json.dumps(existingData))
 
         return file

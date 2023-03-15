@@ -56,7 +56,7 @@ class ElementOverrides(Rhyton):
 
         overrides = toList(overrides)
         originalColors = DocumentConfigStorage().get(
-                cls.EXTENSION_ORIGINAL_COLORS, dict())
+                Rhyton().extensionOriginalColors, dict())
 
         for override in overrides:
             guids = override[cls.GUID]
@@ -76,7 +76,7 @@ class ElementOverrides(Rhyton):
                         Color.HEXtoRGB(
                                 override.get(cls.COLOR, cls.HEX_WHITE)))
 
-        AffectedElements.save(cls.EXTENSION_ORIGINAL_COLORS, originalColors)
+        AffectedElements.save(Rhyton().extensionOriginalColors, originalColors)
 
 
     @classmethod
@@ -91,7 +91,7 @@ class ElementOverrides(Rhyton):
         from color import Color
 
         originalColors = DocumentConfigStorage().get(
-                cls.EXTENSION_ORIGINAL_COLORS, defaultdict())
+                Rhyton().extensionOriginalColors, defaultdict())
         for guid in guids:
             hexColor = originalColors.get(guid, dict()).get(cls.COLOR)
             if hexColor:
@@ -101,7 +101,7 @@ class ElementOverrides(Rhyton):
             rs.ObjectColorSource(guid, originalColors.get(
                     guid, dict()).get(cls.COLOR_SOURCE, 0))
 
-        AffectedElements.remove(cls.EXTENSION_ORIGINAL_COLORS, guids)
+        AffectedElements.remove(Rhyton().extensionOriginalColors, guids)
 
 
 class TextDot(Rhyton):
@@ -182,7 +182,7 @@ class TextDot(Rhyton):
             dot[cls.GUID].append(str(textDot))
             textDots[str(textDot)] = 1
 
-        AffectedElements.save(cls.EXTENSION_TEXTDOTS, textDots)
+        AffectedElements.save(Rhyton().extensionTextdots, textDots)
         return data
 
 
@@ -326,7 +326,7 @@ class ElementUserText(Rhyton):
             guid = entry[cls.GUID]
             del entry[cls.GUID]
             for key, value in entry.items():
-                key = Format.key(cls.DELIMITER.join([cls.EXTENSION_NAME, key]))
+                key = Format.key(cls.DELIMITER.join([Rhyton().extensionName, key]))
                 rs.SetUserText(
                         guid,
                         key=key,
@@ -545,3 +545,7 @@ def GetBreps(filterByTypes=[8, 16, 1073741824]):
 
     breps = [str(b) for b in selection if rs.ObjectType(b) in filterByTypes]
     return breps
+
+
+def GetFilePath(ExtensionFilter):
+    return rs.OpenFileName(filter=ExtensionFilter)

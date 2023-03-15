@@ -31,6 +31,7 @@ class Rhyton(object):
     ORIGINAL_COLORS = '.originalColors'
     COLOR_SCHEMES = '.colorSchemes'
     SETTINGS = '.settings'
+    POWERBI = '.powerbi'
     DELIMITER = "_"
     WHITESPACE = " "
     GUID = "guid"
@@ -54,13 +55,16 @@ class Rhyton(object):
     ROUNDING_DECIMALS_NAME = 'rounding_decimals'
     UNIT_SUFFIX = "m"
     ROUNDING_DECIMALS = 2
-    EXTENSION_GROUP = EXTENSION_NAME + GROUP
-    EXTENSION_TEXTDOTS = EXTENSION_NAME + TEXTDOTS
-    EXTENSION_ORIGINAL_COLORS = EXTENSION_NAME + ORIGINAL_COLORS
-    EXTENSION_COLOR_SCHEMES = EXTENSION_NAME + COLOR_SCHEMES
-    EXTENSION_SETTINGS = EXTENSION_NAME + SETTINGS
 
-    def __init__(self, extensionName):
+
+    # EXTENSION_GROUP = EXTENSION_NAME + GROUP
+    # EXTENSION_TEXTDOTS = EXTENSION_NAME + TEXTDOTS
+    # EXTENSION_ORIGINAL_COLORS = EXTENSION_NAME + ORIGINAL_COLORS
+    # EXTENSION_COLOR_SCHEMES = EXTENSION_NAME + COLOR_SCHEMES
+    # EXTENSION_SETTINGS = EXTENSION_NAME + SETTINGS
+    # EXTENSION_POWERBI = EXTENSION_NAME + POWERBI
+
+    def __init__(self, extensionName=None):
         """
         Inits a new Rhyton instance and loads the settings for given extension.
         Adds some shorthands to the settings as class variables.
@@ -68,12 +72,15 @@ class Rhyton(object):
         Args:
             extensionName (str): The name of the extension that is calling Rhyton.
         """
-        Rhyton.EXTENSION_NAME = extensionName
-        Rhyton.EXTENSION_GROUP = extensionName + self.GROUP
-        Rhyton.EXTENSION_TEXTDOTS = extensionName + self.TEXTDOTS
-        Rhyton.EXTENSION_ORIGINAL_COLORS = extensionName + self.ORIGINAL_COLORS
-        Rhyton.EXTENSION_COLOR_SCHEMES = extensionName + self.COLOR_SCHEMES
-        Rhyton.EXTENSION_SETTINGS = extensionName + self.SETTINGS
+        if extensionName:
+            Rhyton.EXTENSION_NAME = extensionName
+        # Rhyton.EXTENSION_NAME = extensionName
+        # Rhyton.EXTENSION_GROUP = extensionName + self.GROUP
+        # Rhyton.EXTENSION_TEXTDOTS = extensionName + self.TEXTDOTS
+        # Rhyton.EXTENSION_ORIGINAL_COLORS = extensionName + self.ORIGINAL_COLORS
+        # Rhyton.EXTENSION_COLOR_SCHEMES = extensionName + self.COLOR_SCHEMES
+        # Rhyton.EXTENSION_SETTINGS = extensionName + self.SETTINGS
+        # Rhyton.EXTENSION_POWERBI = extensionName + self.POWERBI
 
         self.settings = self.getSettings()
         self.saveSettings(self.settings)
@@ -93,7 +100,7 @@ class Rhyton(object):
         import document
 
         document.DocumentConfigStorage().save(
-                self.EXTENSION_SETTINGS, settings)
+                self.extensionSettings, settings)
     
     def getSettings(self):
         """
@@ -108,7 +115,7 @@ class Rhyton(object):
         import document
 
         config = document.DocumentConfigStorage().get(
-                self.EXTENSION_SETTINGS, None)
+                self.extensionSettings, None)
         if config:
             return config
         else:
@@ -132,3 +139,33 @@ class Rhyton(object):
         config[self.UNIT_SUFFIX_NAME] = unitSuffix
         config[self.ROUNDING_DECIMALS_NAME] = roundingDecimals
         return config
+    
+    @property
+    def extensionName(self):
+        return Rhyton.EXTENSION_NAME
+    
+    @property
+    def extensionGroup(self):
+        return self.extensionName + self.GROUP
+    
+    @property
+    def extensionTextdots(self):
+        return self.extensionName + self.TEXTDOTS
+    
+    @property
+    def extensionOriginalColors(self):
+        return self.extensionName + self.ORIGINAL_COLORS
+    
+    @property
+    def extensionColorSchemes(self):
+        return self.extensionName + self.COLOR_SCHEMES
+    
+    @property
+    def extensionSettings(self):
+        return self.extensionName + self.SETTINGS
+    
+    @property
+    def extensionPowerbi(self):
+        return self.extensionName + self.POWERBI
+
+    
