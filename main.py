@@ -48,6 +48,7 @@ class Rhyton(object):
     NAME = 'name'
     LAYER_HIERARCHY = 'layer_hierarchy'
     EXPORT_CHECKBOXES = 'exportCheckboxes'
+    HDM_DT_DIR = 'C:/HdM-DT'
 
     # Extension settings
     KEY_PREFIX_NAME = 'key_prefix'
@@ -56,13 +57,6 @@ class Rhyton(object):
     UNIT_SUFFIX = "m"
     ROUNDING_DECIMALS = 2
 
-
-    # EXTENSION_GROUP = EXTENSION_NAME + GROUP
-    # EXTENSION_TEXTDOTS = EXTENSION_NAME + TEXTDOTS
-    # EXTENSION_ORIGINAL_COLORS = EXTENSION_NAME + ORIGINAL_COLORS
-    # EXTENSION_COLOR_SCHEMES = EXTENSION_NAME + COLOR_SCHEMES
-    # EXTENSION_SETTINGS = EXTENSION_NAME + SETTINGS
-    # EXTENSION_POWERBI = EXTENSION_NAME + POWERBI
 
     def __init__(self, extensionName=None):
         """
@@ -74,13 +68,6 @@ class Rhyton(object):
         """
         if extensionName:
             Rhyton.EXTENSION_NAME = extensionName
-        # Rhyton.EXTENSION_NAME = extensionName
-        # Rhyton.EXTENSION_GROUP = extensionName + self.GROUP
-        # Rhyton.EXTENSION_TEXTDOTS = extensionName + self.TEXTDOTS
-        # Rhyton.EXTENSION_ORIGINAL_COLORS = extensionName + self.ORIGINAL_COLORS
-        # Rhyton.EXTENSION_COLOR_SCHEMES = extensionName + self.COLOR_SCHEMES
-        # Rhyton.EXTENSION_SETTINGS = extensionName + self.SETTINGS
-        # Rhyton.EXTENSION_POWERBI = extensionName + self.POWERBI
 
         self.settings = self.getSettings()
         self.saveSettings(self.settings)

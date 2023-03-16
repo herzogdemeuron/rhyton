@@ -429,13 +429,13 @@ class Powerbi(Rhyton):
     Class for opening and updating PowerBI.
     """
     CUSTOM_TEMPLATE = "Load Custom Template"
-    POWERBI_DATAFILE = 'C:/temp/rhyton/powerbi.json'
+    POWERBI_DATAFILE = Rhyton.HDM_DT_DIR + '/RhinoToolbarExtensions/powerbi.json'
     POWERBI_TEMPLATES_REPO = 'https://github.com/herzogdemeuron/powerbitemplates.git'
-    POWERBI_TEMPLATES_DIR = "C:\\temp\\rhyton\\powerbitemplates"
-    POWERBI_TEMPLATES_EXTENSION = ".pbit"
+    POWERBI_TEMPLATES_DIR = Rhyton.HDM_DT_DIR + '/RhinoToolbarExtensions/powerbi-templates'
+    POWERBI_TEMPLATES_EXTENSION = '.pbit'
     TIMESTAMP = "timestamp"
     # fixed keys are necessary to ensure the powerbi visuals do not break
-    VIZ_KEY = 'visualization_parameter'
+    VIZ_KEY = "visualization_parameter"
     POWERBI_TEMPLATE = '.template'
 
     @classmethod
@@ -452,13 +452,11 @@ class Powerbi(Rhyton):
         config = dict()
         config[cls.POWERBI_TEMPLATE] = template
         if template == cls.CUSTOM_TEMPLATE:
-            print('custom template')
             template = GetFilePath(cls.POWERBI_TEMPLATES_EXTENSION)
             data = cls._getData()
             if not data:
                 return
         else:
-            print('regular template')
             allKeys = ElementUserText.getKeys(rs.AllObjects())
             vizKey = SelectionWindow.show(allKeys, message="Select Parameter to Visualize:")
             config[cls.VIZ_KEY] = vizKey
@@ -478,7 +476,7 @@ class Powerbi(Rhyton):
     def update(cls):
         templateFlag = Rhyton().extensionName + cls.POWERBI + cls.POWERBI_TEMPLATE
         config = DocumentConfigStorage().get(templateFlag)
-        if config[cls.POWEBI_TEMPLATE] == cls.CUSTOM_TEMPLATE:
+        if config[cls.POWERBI_TEMPLATE] == cls.CUSTOM_TEMPLATE:
             data = cls._getData()
             if not data:
                 return
@@ -499,13 +497,7 @@ class Powerbi(Rhyton):
     @classmethod
     def _pickTemplate(cls):
         if not os.path.exists(cls.POWERBI_TEMPLATES_DIR):
-            res = rs.MessageBox(
-                    message="No templates found. Do you want to download the default templates from 'github.com/herzogdemeuron/powerbitemplates'?",
-                    buttons=4)
-            if res == 6:
-                cls._cloneTemplates()
-            else:
-                return
+            os.makedirs(cls.POWERBI_TEMPLATES_DIR)
 
         files = cls.absoluteFilePaths(cls.POWERBI_TEMPLATES_DIR)
         templates = [os.path.abspath(f) for f in files if f.endswith(cls.POWERBI_TEMPLATES_EXTENSION)]
@@ -547,23 +539,6 @@ class Powerbi(Rhyton):
 
         return data
     
-    @classmethod
-    def _updateTemplates(cls):
-        if os.path.exists(cls.POWERBI_TEMPLATES_DIR):
-            os.rmdir(cls.POWERBI_TEMPLATES_DIR)
-
-        cls._cloneTemplates()
-
-    @classmethod
-    def _cloneTemplates(cls):
-        if not os.path.exists(cls.POWERBI_TEMPLATES_DIR):
-            os.makedirs(cls.POWERBI_TEMPLATES_DIR)
-            import subprocess
-            command = "git clone {} {}".format(
-                    cls.POWERBI_TEMPLATES_REPO, cls.POWERBI_TEMPLATES_DIR)
-            subprocess.Popen(command)
-            subprocess.wait()
-        
     @staticmethod
     def _processExists(processName):
         import subprocess
@@ -595,6 +570,7 @@ class Powerbi(Rhyton):
         """
         name = Rhyton().extensionName
         return [
+            cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, cls.NAME]),
             cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, "1"]),
             cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, "2"]),
             cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, "3"])]

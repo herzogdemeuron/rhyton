@@ -511,7 +511,10 @@ class Layer(Rhyton):
         for guid in guids:
             data = dict()
             data[cls.GUID] = guid
-            layers = rs.ObjectLayer(guid).split('::')[:depth]
+            objectLayer = rs.ObjectLayer(guid)
+            fullHierarchy = cls.DELIMITER.join([cls.LAYER_HIERARCHY, cls.NAME])
+            data[fullHierarchy] = objectLayer
+            layers = objectLayer.split('::')[:depth]
             for index, layer in enumerate(layers, 1):
                 key = cls.DELIMITER.join([cls.LAYER_HIERARCHY, str(index)])
                 data[key] = layer

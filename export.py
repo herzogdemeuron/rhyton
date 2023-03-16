@@ -1,16 +1,20 @@
+# python standard imports
 import os
 import csv
 import json
 from datetime import datetime
 
+# rhyton imports
+from main import Rhyton
 
-class ExportBase:
+
+class ExportBase(Rhyton):
 
     @classmethod
     def prepFile(cls, file, extension):
         if not file:
             now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            file = 'C:/temp/rhyton/{}.{}'.format(now, extension.lower())
+            file = '{}/{}.{}'.format(Rhyton.HDM_DT_DIR, now, extension.lower())
 
         directory = os.path.dirname(file)
         if not os.path.exists(directory):
@@ -75,10 +79,6 @@ class JsonExporter(ExportBase):
         # try:
         with open(file, 'r') as f:
             existingData = json.load(f)
-        print('existing', existingData)
-        # except FileNotFoundError:
-        #     print("File does not exist.")
-        
         if existingData:
             existingData = existingData + data
             with open(file, 'w') as f:
