@@ -32,10 +32,10 @@ Coding Style Guid:
     - "" for text that is presented to the user.
     - '' for internal stings.
     - Functions in ui.py should not take arguments to keep out clutter.
-    - The Rhyton('extension_name') class instance is meant to be the 
-    only **configurable** point of entry.
+    - The Rhyton('extension_name') class instance is meant to be the only **configurable** point of entry.
     - **All** modules, classes and function must have extensive docstrings
     - Keep in-line comments to a minimum.
+    
 """
 # rhyton imports
 from rhyton.ui import *
