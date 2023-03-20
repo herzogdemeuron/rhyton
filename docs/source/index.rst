@@ -31,4 +31,4 @@ Rhyton
    :caption: More
    :hidden:
 
-   GitHub <https://github.com/herzogdemeuron/BIMlight>
+   GitHub <https://github.com/herzogdemeuron/rhyton>
