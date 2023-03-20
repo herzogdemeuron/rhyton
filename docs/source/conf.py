@@ -70,7 +70,7 @@ html_theme_options = {
     'color_scheme': 'dark'
 }
 
-html_logo = '_static/rhyton.png'
+html_logo = '_static/rhyton.svg'
 html_title = 'Rhyton'
 html_favicon = '_static/favicon.ico'
 
@@ -91,7 +91,7 @@ html_context = {
 
 html_sidebars = {}
 
-# html_logo = '_static/rhyton.png'
+# html_logo = '_static/rhyton.svg'
 # html_title = 'Rhyton'
 
 html_static_path = ['_static']
