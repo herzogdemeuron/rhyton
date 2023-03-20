@@ -3,18 +3,17 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Rhyton's documentation!
-==================================
+Rhyton
+======
+
+`Rhyton <https://github.com/herzogdemeuron/rhyton>`_ is a data management and visualization core for McNeel's Rhinoceros 3D.
+It's purpose is to provide common data handling platform for other extensions such as
+`BIMlight <https://github.com/herzogdemeuron/BIMlight>`_ 
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 3
+   :caption: Rhyton:
 
+   rhyton
+   genindex
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

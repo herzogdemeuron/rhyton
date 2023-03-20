@@ -1,13 +1,19 @@
 """
-rhyton is a base package that you can develop your data-centric 
-Rhino extensions ontop of.
+Rhyton is a core library for Rhino that you can develop your data-centric 
+Rhino extensions with.
 
-These are the main topics that rhtyon covers:
+Focus Areas
+-----------
 
-    - Object User Text
-    - Document User Text
-    - Object Color 'Overrides' / Data Visualization
-    - Exporting Object User Text
+Rhyton's code base is focusses around these topics:
+
+1. Object User Text
+2. Document User Text
+3. Object Color 'Overrides' / Data Visualization
+4. Exporting Object User Text
+
+Data Concept
+------------
 
 Since rhyton is a data focussed package, it handles Rhino objects internally as
 dictionaries::
@@ -19,22 +25,39 @@ share the same keys and values::
 
     {"guid": [<guid1>, <guid2>],"'key1": <value1>, "key2", <value2>}
 
-The ''Rhyton'' class is used as a common base class to share information
-across the package.
+Extensions
+----------
 
-Coding Style Guid:
+Rhyton is inteded to be uses as the basis for other topic-specific extensions.
+The ``Rhyton`` class is used as a common base class to share information
+across the package. This allows you to separate settings and variables for multiple extensions.
 
-    - 'camelCase' function and variable names.
-    - Title 'CamelCase' class names.
-    - Class names and functions are designed for reading flow:
-        * rhyton.Visualize.byGroup()
-        * rhyton.Export.toCSV()
-    - "" for text that is presented to the user.
-    - '' for internal stings.
-    - Functions in ui.py should not take arguments to keep out clutter.
-    - The Rhyton('extension_name') class instance is meant to be the only **configurable** point of entry.
-    - **All** modules, classes and function must have extensive docstrings
-    - Keep in-line comments to a minimum.
+Set extension specific settings::
+
+    rhyton.Settings('bimlight')
+
+Use those settings::
+
+    rhyton.Rhyton('bimlight')
+    rhyton.Visualize.byValue()
+
+
+Coding Style Guide
+------------------
+
+    1. 'camelCase' function and variable names.
+    2. Title 'CamelCase' class names.
+    3. Class names and functions are designed for reading flow::
+
+        rhyton.Visualize.byGroup()
+        rhyton.Export.toCSV()
+
+    4. " (double quotes) for text that is presented to the user.
+    5. ' (single quotes) for internal stings.
+    6. Functions in ui.py should not take arguments to keep out clutter.
+    7. The Rhyton('extension_name') class instance is meant to be the **only configurable** point of entry.
+    8. **All** modules, classes and function must have extensive docstrings
+    9. Keep in-line comments to a minimum.
     
 """
 # rhyton imports
