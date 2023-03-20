@@ -65,12 +65,36 @@ ogp_site_url = "https://rhyton.readthedocs.io/"
 
 html_theme = 'revitron_sphinx_theme'
 html_theme_options = {
-    'navigation_depth': 2,
+    'navigation_depth': 5,
     'github_url': 'https://github.com/herzogdemeuron/rhyton',
     'color_scheme': 'dark'
 }
 
 html_logo = '_static/rhyton.png'
 html_title = 'Rhyton'
+html_favicon = '_static/favicon.ico'
+
+html_context = {
+    'landing_page': {
+        'menu': [{
+            'title': 'Rhyton',
+            'url': 'https://rhyton.readthedocs.io/'
+        }, {
+            'title': 'Developer Guide',
+            'url': 'rhyton.html'
+        }, {
+            'title': 'HdM-DT',
+            'url': 'https://www.herzogdemeuron.com/topics/design-technologies/'
+        }]
+    }
+}
+
+html_sidebars = {}
+
+# html_logo = '_static/rhyton.png'
+# html_title = 'Rhyton'
 
 html_static_path = ['_static']
+html_css_files = ['custom.css']
+
+html_js_files = []
