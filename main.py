@@ -129,30 +129,72 @@ class Rhyton(object):
     
     @property
     def extensionName(self):
+        """
+        The current extension name.
+
+        Returns:
+            string: The name of the currently active extension
+        """
         return Rhyton.EXTENSION_NAME
     
     @property
     def extensionGroup(self):
+        """
+        The global group identifier prefixied with the current extension.
+
+        Returns:
+            string: The group identifier
+        """
         return self.extensionName + self.GROUP
     
     @property
     def extensionTextdots(self):
+        """
+        The global text dot identifier prefixied with the current extension.
+
+        Returns:
+            string: The text dot identifier
+        """
         return self.extensionName + self.TEXTDOTS
     
     @property
     def extensionOriginalColors(self):
+        """
+        The global original colors identifier prefixied with the current extension.
+
+        Returns:
+            string: The original colors identifier
+        """
         return self.extensionName + self.ORIGINAL_COLORS
     
     @property
     def extensionColorSchemes(self):
+        """
+        The global color scheme identifier prefixied with the current extension.
+
+        Returns:
+            string: The color scheme identifier
+        """
         return self.extensionName + self.COLOR_SCHEMES
     
     @property
     def extensionSettings(self):
+        """
+        The global settings identifier prefixied with the current extension.
+
+        Returns:
+            string: The settings identifier
+        """
         return self.extensionName + self.SETTINGS
     
     @property
     def extensionPowerbi(self):
+        """
+        The global powerbi identifier prefixied with the current extension.
+
+        Returns:
+            string: The powerbi identifier
+        """
         return self.extensionName + self.POWERBI
 
     
