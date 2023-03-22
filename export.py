@@ -70,18 +70,18 @@ class JsonExporter(ExportBase):
     def write(cls, data, file=None):
         file = cls.prepFile(file, 'json')
         with open(file, 'w') as f:
-            f.write(json.dumps(data))
+            f.write(json.dumps(data, encoding="utf-8", ensure_ascii=False))
 
         return file
 
     @staticmethod
     def append(data, file):
-        # try:
         with open(file, 'r') as f:
             existingData = json.load(f)
         if existingData:
             existingData = existingData + data
             with open(file, 'w') as f:
-                f.write(json.dumps(existingData))
+                f.write(json.dumps(
+                        existingData, encoding="utf-8", ensure_ascii=False))
 
         return file
