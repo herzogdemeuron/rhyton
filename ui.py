@@ -453,16 +453,24 @@ class Powerbi(Rhyton):
         config[cls.POWERBI_TEMPLATE] = template
         if template == cls.CUSTOM_TEMPLATE:
             template = GetFilePath(cls.POWERBI_TEMPLATES_EXTENSION)
-            data = cls._getData()
+            breps = GetBreps()
+            if not breps:
+                return
+        
+            data = cls._getData(breps)
             if not data:
                 return
         else:
-            allKeys = ElementUserText.getKeys(rs.AllObjects())
+            breps = GetBreps()
+            if not breps:
+                return
+        
+            allKeys = ElementUserText.getKeys(breps)
             vizKey = SelectionWindow.show(allKeys, message="Select Parameter to Visualize:")
             config[cls.VIZ_KEY] = vizKey
             fixedKeys = cls.fixedKeys()
             fixedKeys.append(vizKey)
-            data = cls._getData(fixedKeys=fixedKeys, vizKey=vizKey)
+            data = cls._getData(breps, fixedKeys=fixedKeys, vizKey=vizKey)
             if not data:
                 return
 
@@ -477,14 +485,22 @@ class Powerbi(Rhyton):
         templateFlag = Rhyton().extensionName + cls.POWERBI + cls.POWERBI_TEMPLATE
         config = DocumentConfigStorage().get(templateFlag)
         if config[cls.POWERBI_TEMPLATE] == cls.CUSTOM_TEMPLATE:
-            data = cls._getData()
+            breps = GetBreps()
+            if not breps:
+                return
+        
+            data = cls._getData(breps)
             if not data:
                 return
         else:
+            breps = GetBreps()
+            if not breps:
+                return
+        
             vizKey = config.get(cls.VIZ_KEY)
             fixedKeys = cls.fixedKeys()
             fixedKeys.append(vizKey)
-            data = cls._getData(fixedKeys=fixedKeys, vizKey=vizKey)
+            data = cls._getData(breps, fixedKeys=fixedKeys, vizKey=vizKey)
             if not data:
                 return
             
@@ -507,23 +523,20 @@ class Powerbi(Rhyton):
         return SelectionWindow.show(options, message="Pick PowerBI Template:")
 
     @classmethod
-    def _getData(cls, fixedKeys=[], vizKey=None):
-        breps = GetBreps()
-        if not breps:
-            return
+    def _getData(cls, guids, fixedKeys=[], vizKey=None):
         
-        layerHierachyDepth = Layer.maxHierarchy(breps)
-        Layer.addLayerHierarchy(breps, layerHierachyDepth)
+        layerHierachyDepth = Layer.maxHierarchy(guids)
+        Layer.addLayerHierarchy(guids, layerHierachyDepth)
         flag = '.'.join([Rhyton().extensionPowerbi, cls.EXPORT_CHECKBOXES])
         if fixedKeys:
             selectedKeys = fixedKeys
         else:
-            selectedKeys = Export.getExportKeys(flag, breps)
+            selectedKeys = Export.getExportKeys(flag, guids)
             if not selectedKeys:
                 return
 
-        data = ElementUserText.get(breps, selectedKeys)
-        Layer.removeLayerHierarchy(breps)
+        data = ElementUserText.get(guids, selectedKeys)
+        Layer.removeLayerHierarchy(guids)
 
         timeStamp = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         prefix = Rhyton().extensionName + cls.DELIMITER
