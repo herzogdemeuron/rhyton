@@ -20,6 +20,8 @@ class ElementOverrides(Rhyton):
     """
     Class for handling color overrides on Rhino objects.
     """
+    OVERRIDE_PROGRESS = "Color Overrides..."
+
     @classmethod
     def apply(cls, overrides):
         """
@@ -54,28 +56,31 @@ class ElementOverrides(Rhyton):
             overrides (list(dict)): A dictionary or a list of dictionaries.
         """
         from color import Color
+        from ui import ProgressBar
 
         overrides = toList(overrides)
         originalColors = DocumentConfigStorage().get(
                 Rhyton().extensionOriginalColors, dict())
 
-        for override in overrides:
-            guids = override[cls.GUID]
-            guids = toList(guids)
-            
-            for guid in guids:
-                color = rs.ObjectColor(guid)
-                color = tuple([color[0], color[1], color[2]])
-                if not guid in originalColors:
-                    original = dict()
-                    original[cls.COLOR] = Color.RGBtoHEX(color)
-                    original[cls.COLOR_SOURCE] = rs.ObjectColorSource(guid)
-                    originalColors[guid] = original
-                    
-                rs.ObjectColor(
-                        guid,
-                        Color.HEXtoRGB(
-                                override.get(cls.COLOR, cls.HEX_WHITE)))
+        with ProgressBar(len(overrides), label=cls.OVERRIDE_PROGRESS) as bar:
+            for override in overrides:
+                guids = override[cls.GUID]
+                guids = toList(guids)
+                
+                for guid in guids:
+                    color = rs.ObjectColor(guid)
+                    color = tuple([color[0], color[1], color[2]])
+                    if not guid in originalColors:
+                        original = dict()
+                        original[cls.COLOR] = Color.RGBtoHEX(color)
+                        original[cls.COLOR_SOURCE] = rs.ObjectColorSource(guid)
+                        originalColors[guid] = original
+                        
+                    rs.ObjectColor(
+                            guid,
+                            Color.HEXtoRGB(
+                                    override.get(cls.COLOR, cls.HEX_WHITE)))
+                bar.update()
 
         AffectedElements.save(Rhyton().extensionOriginalColors, originalColors)
 
@@ -90,17 +95,21 @@ class ElementOverrides(Rhyton):
             guids (str): The ids of the objects.
         """
         from color import Color
+        from ui import ProgressBar
 
         originalColors = DocumentConfigStorage().get(
                 Rhyton().extensionOriginalColors, defaultdict())
-        for guid in guids:
-            hexColor = originalColors.get(guid, dict()).get(cls.COLOR)
-            if hexColor:
-                rgbColor = Color.HEXtoRGB(hexColor)
-                rs.ObjectColor(guid, rgbColor)
+        
+        with ProgressBar(len(guids), label=cls.OVERRIDE_PROGRESS) as bar:
+            for guid in guids:
+                hexColor = originalColors.get(guid, dict()).get(cls.COLOR)
+                if hexColor:
+                    rgbColor = Color.HEXtoRGB(hexColor)
+                    rs.ObjectColor(guid, rgbColor)
 
-            rs.ObjectColorSource(guid, originalColors.get(
-                    guid, dict()).get(cls.COLOR_SOURCE, 0))
+                rs.ObjectColorSource(guid, originalColors.get(
+                        guid, dict()).get(cls.COLOR_SOURCE, 0))
+                bar.update()
 
         AffectedElements.remove(Rhyton().extensionOriginalColors, guids)
 
@@ -109,6 +118,7 @@ class TextDot(Rhyton):
     """
     Class for handling Rhino text dot objects.
     """
+    OVERRIDE_PROGRESS = "Text Dots..."
     @classmethod
     def add(cls, data, valueKey, aggregate=True):
         """
@@ -150,38 +160,41 @@ class TextDot(Rhyton):
             list: The input list of dicts with the guids of the text dots added.
         """
         from color import Color
+        from ui import ProgressBar
 
         data = toList(data)
         textDots = dict()
-        for dot in data:
-            dot[cls.GUID] = toList(dot[cls.GUID])
-            bBox = rs.BoundingBox(dot[cls.GUID])
-            if aggregate:
-                try:
-                    value = ElementUserText.aggregate(dot[cls.GUID], valueKey)
-                    value = Format.formatNumber(value, valueKey)
-                except:
-                    value = len(dot[cls.GUID])
-            else:
-                value = ElementUserText.getValue(
-                            dot[cls.GUID][0], valueKey)
-                try:
-                    value = Format.formatNumber(float(value), valueKey)
-                except:
-                    if value == cls.WHITESPACE:
-                        value = cls.EMPTY
-                    elif value == None:
-                        value = cls.NOT_AVAILABLE
+        with ProgressBar(len(data), label=cls.OVERRIDE_PROGRESS) as bar:
+            for dot in data:
+                dot[cls.GUID] = toList(dot[cls.GUID])
+                bBox = rs.BoundingBox(dot[cls.GUID])
+                if aggregate:
+                    try:
+                        value = ElementUserText.aggregate(dot[cls.GUID], valueKey)
+                        value = Format.formatNumber(value, valueKey)
+                    except:
+                        value = len(dot[cls.GUID])
+                else:
+                    value = ElementUserText.getValue(
+                                dot[cls.GUID][0], valueKey)
+                    try:
+                        value = Format.formatNumber(float(value), valueKey)
+                    except:
+                        if value == cls.WHITESPACE:
+                            value = cls.EMPTY
+                        elif value == None:
+                            value = cls.NOT_AVAILABLE
 
-            point = Line(bBox[0], bBox[6]).PointAt(0.5)
-            textDot = rs.AddTextDot(value, point)
-            rs.ObjectColor(
-                    textDot,
-                    Color.HEXtoRGB(dot.get(cls.COLOR, cls.HEX_WHITE)))
-            rs.TextDotFont(textDot, cls.FONT)
-            rs.TextDotHeight(textDot, 12.0)
-            dot[cls.GUID].append(str(textDot))
-            textDots[str(textDot)] = 1
+                point = Line(bBox[0], bBox[6]).PointAt(0.5)
+                textDot = rs.AddTextDot(value, point)
+                rs.ObjectColor(
+                        textDot,
+                        Color.HEXtoRGB(dot.get(cls.COLOR, cls.HEX_WHITE)))
+                rs.TextDotFont(textDot, cls.FONT)
+                rs.TextDotHeight(textDot, 12.0)
+                dot[cls.GUID].append(str(textDot))
+                textDots[str(textDot)] = 1
+                bar.update()
 
         AffectedElements.save(Rhyton().extensionTextdots, textDots)
         return data
@@ -321,8 +334,11 @@ class ElementUserText(Rhyton):
             data (list(dict)): A list of dictionaries describing the 
             keyPrefix (str, optional): The prefix for all keys. Defaults to "".
         """
+        from ui import ProgressBar
+        
         data = toList(data)
 
+        # with ProgressBar(len(data), label="Applying User Data") as bar:
         for entry in data:
             guid = entry[cls.GUID]
             del entry[cls.GUID]
@@ -332,6 +348,7 @@ class ElementUserText(Rhyton):
                         guid,
                         key=key,
                         value=Format.value(value))
+                # bar.update()
 
     @classmethod
     def get(cls, guids, keys=None):
@@ -528,19 +545,25 @@ class Layer(Rhyton):
             data (dict): A dictionary or list of dictionaries.
             depth (int): The maximum depth of sublayer names to add.
         """
+        from ui import ProgressBar
+
         guids = toList(guids)
-        for guid in guids:
-            data = dict()
-            data[cls.GUID] = guid
-            objectLayer = rs.ObjectLayer(guid)
-            fullHierarchy = cls.DELIMITER.join([cls.LAYER_HIERARCHY, cls.NAME])
-            data[fullHierarchy] = objectLayer
-            layers = objectLayer.split('::')[:depth]
-            for index, layer in enumerate(layers, 1):
-                key = cls.DELIMITER.join([cls.LAYER_HIERARCHY, str(index)])
-                data[key] = layer
-        
-            ElementUserText.apply(data)
+
+        with ProgressBar(len(guids), label="Adding Layer Information...") as bar:
+
+            for guid in guids:
+                data = dict()
+                data[cls.GUID] = guid
+                objectLayer = rs.ObjectLayer(guid)
+                fullHierarchy = cls.DELIMITER.join([cls.LAYER_HIERARCHY, cls.NAME])
+                data[fullHierarchy] = objectLayer
+                layers = objectLayer.split('::')[:depth]
+                for index, layer in enumerate(layers, 1):
+                    key = cls.DELIMITER.join([cls.LAYER_HIERARCHY, str(index)])
+                    data[key] = layer
+            
+                ElementUserText.apply(data)
+                bar.update()
     
     @classmethod
     def removeLayerHierarchy(cls, guids):

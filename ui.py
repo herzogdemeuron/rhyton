@@ -5,6 +5,7 @@ Provides ready-made functions that can be used by buttons in any extension.
 # python standard imports
 import os
 from datetime import datetime
+from contextlib import contextmanager
 
 # rhino imports
 import rhinoscriptsyntax as rs
@@ -225,16 +226,18 @@ class Export(Rhyton):
         if not exportMethod:
             return
         
-        with Layer.hierarchyInformation(breps):
-            flag = '.'.join([self.extensionName, self.EXPORT_CHECKBOXES])
-            selectedKeys = self.getExportKeys(flag, breps)
-            if not selectedKeys:
-                return
+        # with Layer.hierarchyInformation(breps):
+        depth =  Layer.maxHierarchy(breps)
+        Layer.addLayerHierarchy(breps, depth)
+        flag = '.'.join([self.extensionName, self.EXPORT_CHECKBOXES])
+        selectedKeys = self.getExportKeys(flag, breps)
+        if not selectedKeys:
+            return
 
-            if exportMethod == self.CSV:
-                self.toCSV(breps, selectedKeys)
-            elif exportMethod == self.JSON:
-                self.toJSON(breps, selectedKeys)
+        if exportMethod == self.CSV:
+            self.toCSV(breps, selectedKeys)
+        elif exportMethod == self.JSON:
+            self.toJSON(breps, selectedKeys)
 
     def toCSV(self, guids, keys):
         """
@@ -276,7 +279,9 @@ class Export(Rhyton):
         Returns:
             list(str): A list of user text keys.
         """
+        print('before')
         keys = sorted(list(ElementUserText.getKeys(guids)))
+        print('after')
         options = cls.getCheckboxDefaults(flag, keys=keys)
         selectedOptions = SelectionWindow.showBoxes(options)
         if not selectedOptions:
@@ -580,3 +585,23 @@ class Powerbi(Rhyton):
             cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, "1"]),
             cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, "2"]),
             cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, "3"])]
+    
+
+class ProgressBar():
+    def __init__(self, upper, label="Calculating...", lower=1):
+        self.upper = upper
+        self.label = label
+        self.lower = lower
+        self.position = 0
+        
+    def __enter__(self):
+        rs.StatusBarProgressMeterShow(
+                self.label, self.lower, self.upper, embed_label=True, show_percent=True)
+        return self.__class__(self.upper)
+    
+    def __exit__(self, exc_type, exc_val, traceback):
+        rs.StatusBarProgressMeterHide()
+
+    def update(self):
+        self.position += 1
+        rs.StatusBarProgressMeterUpdate(self.position, absolute=True)
