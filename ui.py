@@ -382,7 +382,11 @@ class SelectionWindow:
         if not type(options) == dict:
             options = dict((i, i) for i in options)
 
-        res = rs.ListBox(sorted(options.keys()), message, default=options.keys()[0])
+        res = rs.ListBox(
+                sorted(options.keys()),
+                message,
+                title=Rhyton().extensionName.title(),
+                default=options.keys()[0])
         if res:
             return options[res]
         
@@ -406,7 +410,10 @@ class SelectionWindow:
             list(tuple): A list of tuples indicating
                     the name and state of each checkbox.
         """ 
-        return rs.CheckListBox(sorted(options), message)
+        return rs.CheckListBox(
+                sorted(options),
+                message,
+                title=Rhyton().extensionName.title())
     
     @staticmethod
     def dictBox(options, message=None):
@@ -420,7 +427,8 @@ class SelectionWindow:
         res = rs.PropertyListBox(
                 [Format.value(k) for k in options.keys()],
                 options.values(),
-                message)
+                message,
+                title=Rhyton().extensionName.title())
         if res:
             return dict((k, v) for k, v in zip(options.keys(), res))
         
