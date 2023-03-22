@@ -4,6 +4,7 @@ This is the only module in this package that actually modifies the Rhino documen
 """
 # python standard imports
 import json
+from contextlib import contextmanager
 from collections import defaultdict
 
 # rhino imports
@@ -484,6 +485,26 @@ class Group(Rhyton):
 
 
 class Layer(Rhyton):
+    """
+    Class for handling layer information.
+    """
+    @classmethod
+    @contextmanager
+    def hierarchyInformation(cls, guids):
+        """
+        Context manager function to temporarlily add layer information to
+        the user text of given Rhino objects.
+
+        Args:
+            guids (list(str)): A list of Rhino object ids.
+        """
+        layerHierachyDepth = cls.maxHierarchy(guids)
+        cls.addLayerHierarchy(guids, layerHierachyDepth)
+        try:
+            yield
+        finally:
+            cls.removeLayerHierarchy(guids)
+
     @staticmethod
     def maxHierarchy(guids):
         """
@@ -523,6 +544,12 @@ class Layer(Rhyton):
     
     @classmethod
     def removeLayerHierarchy(cls, guids):
+        """
+        Removes layer information from given objects user text.
+
+        Args:
+            guids (list(str)): A list of Rhino object ids.
+        """
         keys =  ElementUserText.getKeys(guids)
         keys = [k for k in keys if cls.LAYER_HIERARCHY in k]
         ElementUserText.remove(guids, keys)

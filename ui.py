@@ -225,20 +225,16 @@ class Export(Rhyton):
         if not exportMethod:
             return
         
-        layerHierachyDepth = Layer.maxHierarchy(breps)
-        Layer.addLayerHierarchy(breps, layerHierachyDepth)
+        with Layer.hierarchyInformation(breps):
+            flag = '.'.join([self.extensionName, self.EXPORT_CHECKBOXES])
+            selectedKeys = self.getExportKeys(flag, breps)
+            if not selectedKeys:
+                return
 
-        flag = '.'.join([self.extensionName, self.EXPORT_CHECKBOXES])
-        selectedKeys = self.getExportKeys(flag, breps)
-        if not selectedKeys:
-            return
-
-        if exportMethod == self.CSV:
-            self.toCSV(breps, selectedKeys)
-        elif exportMethod == self.JSON:
-            self.toJSON(breps, selectedKeys)
-
-        Layer.removeLayerHierarchy(breps)
+            if exportMethod == self.CSV:
+                self.toCSV(breps, selectedKeys)
+            elif exportMethod == self.JSON:
+                self.toJSON(breps, selectedKeys)
 
     def toCSV(self, guids, keys):
         """
@@ -405,7 +401,7 @@ class SelectionWindow:
             list(tuple): A list of tuples indicating
                     the name and state of each checkbox.
         """ 
-        return rs.CheckListBox(options, message)
+        return rs.CheckListBox(sorted(options), message)
     
     @staticmethod
     def dictBox(options, message=None):
@@ -524,19 +520,16 @@ class Powerbi(Rhyton):
 
     @classmethod
     def _getData(cls, guids, fixedKeys=[], vizKey=None):
-        
-        layerHierachyDepth = Layer.maxHierarchy(guids)
-        Layer.addLayerHierarchy(guids, layerHierachyDepth)
-        flag = '.'.join([Rhyton().extensionPowerbi, cls.EXPORT_CHECKBOXES])
-        if fixedKeys:
-            selectedKeys = fixedKeys
-        else:
-            selectedKeys = Export.getExportKeys(flag, guids)
-            if not selectedKeys:
-                return
+        with Layer.hierarchyInformation(guids):
+            flag = '.'.join([Rhyton().extensionPowerbi, cls.EXPORT_CHECKBOXES])
+            if fixedKeys:
+                selectedKeys = fixedKeys
+            else:
+                selectedKeys = Export.getExportKeys(flag, guids)
+                if not selectedKeys:
+                    return
 
-        data = ElementUserText.get(guids, selectedKeys)
-        Layer.removeLayerHierarchy(guids)
+            data = ElementUserText.get(guids, selectedKeys)
 
         timeStamp = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         prefix = Rhyton().extensionName + cls.DELIMITER
