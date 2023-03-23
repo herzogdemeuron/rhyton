@@ -484,12 +484,14 @@ class Powerbi:
     def show(cls):
         """
         This method is used to start PowerBI.
+
         It checks if PowerBI is already running and if not, it opens it.
         The user can select a pre-defined template or load a custom template.
         When a pre-defined template is selected, certain parameters are fixed
         to ensure that the query and visuals in powerbi do not break. 
         The user is asked to select a parameter to visualize which is then 
         renamend to meet the PowerBI template requirements.
+
         The data is then written to a json file and PowerBI is opened.
         """
         pbiRunning = cls._processExists('PBIDesktop.exe')
@@ -540,13 +542,8 @@ class Powerbi:
     def update(cls):
         """
         This method is used to update PowerBI.
-        It get the current PowerBI template and chooses the correct method for
+        It gets the current PowerBI template and chooses the correct method for
         updating the data.
-
-        These methods are::
-
-            - updateCustomTemplate
-            - updatePredefinedTemplate
         
         The data is then written to a json file and PowerBI is opened.
         """
@@ -673,7 +670,7 @@ class Powerbi:
             directory (str): The directory to search.
 
         Yields:
-            str: The absolute file paths.
+            list(str): The absolute file paths.
         """
         for dirpath,_,filenames in os.walk(directory):
             for f in filenames:
@@ -683,10 +680,10 @@ class Powerbi:
     def fixedKeys():
         """
         Generates fixed keys when needed. This cannot be done as a
-        class variable because the extension name might change 
+        class variable because the extension name might change.
 
         Yields:
-            _type_: _description_
+            list(str): The fixed keys.
         """
         name = Rhyton().extensionName
         return [
