@@ -405,6 +405,7 @@ class Gradient:
     def _getRange(start, end, count):
         """
         Gets a range of values.
+        Will only return positive values.
 
         Args:
             start (int): The start value.
@@ -420,7 +421,7 @@ class Gradient:
         step = (end - start) / count
         increments = []
         for i in range(count):
-            increments.append(int(start))
+            increments.append(abs(int(start)))
             start += step
 
         return increments
