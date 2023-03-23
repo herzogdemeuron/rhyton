@@ -2,7 +2,7 @@
 Module for general utily functions.
 """
 # rhyton imports
-from main import Rhyton
+from rhyton.main import Rhyton
 
 
 class Format(Rhyton):

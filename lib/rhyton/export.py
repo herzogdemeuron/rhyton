@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 # rhyton imports
-from main import Rhyton
+from rhyton.main import Rhyton
 
 
 class ExportBase(Rhyton):

@@ -83,14 +83,11 @@ class Rhyton(object):
         Saves a configuration to the document text.
 
         Args:
-            extensionName (str): The extension name.
-            keyPrefix (str, optional): The prefix for every key. Defaults to "ry_".
-            unitSuffix (str, optional): The units suffix for display. Defaults to "m".
-            roundingDecimals (int, optional): The rounding precision for display values. Defaults to 2.
+            settings (dict): The configuration to save.
         """
-        import document
+        from rhyton.document import DocumentConfigStorage
 
-        document.DocumentConfigStorage().save(
+        DocumentConfigStorage().save(
                 self.extensionSettings, settings)
     
     def getSettings(self):
@@ -103,9 +100,9 @@ class Rhyton(object):
         Returns:
             dict: The configuration.
         """
-        import document
+        from rhyton.document import DocumentConfigStorage
 
-        config = document.DocumentConfigStorage().get(
+        config = DocumentConfigStorage().get(
                 self.extensionSettings, None)
         if config:
             return config

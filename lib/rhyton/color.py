@@ -10,8 +10,8 @@ from itertools import repeat
 from collections import defaultdict
 
 # rhyton imports
-from main import Rhyton
-from document import DocumentConfigStorage, ElementUserText, ElementOverrides
+from rhyton.main import Rhyton
+from rhyton.document import DocumentConfigStorage, ElementUserText, ElementOverrides
 
 class Color:
     """

@@ -11,14 +11,8 @@ import sys
 import datetime
 import revitron_sphinx_theme
 
-path1 =  os.path.abspath('../../..')
-path2 =  os.path.abspath('../..')
-print(path1)
-print(path2)
-sys.path.insert(0, path1)
-# path2 = os.path.join(os.path.dirname(__file__), '../../lib')
-# print(path2)
-sys.path.append(path2)
+sys.path.insert(0, os.path.abspath('../..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../lib'))
 
 project = 'Rhyton'
 copyright = '2023, Herzog & de Meuron'

@@ -10,11 +10,11 @@ from datetime import datetime
 import rhinoscriptsyntax as rs
 
 # rhyton imports
-from main import Rhyton
-from export import CsvExporter, JsonExporter
-from document import GetBreps, ElementUserText, Group, TextDot, GetFilePath
-from document import DocumentConfigStorage, ElementOverrides, Layer
-from utils import Format, groupGuidsBy
+from rhyton.main import Rhyton
+from rhyton.export import CsvExporter, JsonExporter
+from rhyton.document import GetBreps, ElementUserText, Group, TextDot, GetFilePath
+from rhyton.document import DocumentConfigStorage, ElementOverrides, Layer
+from rhyton.utils import Format, groupGuidsBy
 
 class Visualize(Rhyton):
     """
@@ -29,7 +29,7 @@ class Visualize(Rhyton):
         user-selected 'Parameter to Summarize'.
         Places text dots with the value for each group.
         """
-        from color import ColorScheme
+        from rhyton.color import ColorScheme
 
         breps = GetBreps()
         if not breps:
@@ -65,7 +65,7 @@ class Visualize(Rhyton):
         Groups selected objects and places a text dot to display the total.
         Non-number parameter values will result in a simple object count.
         """
-        from color import ColorScheme
+        from rhyton.color import ColorScheme
 
         breps = GetBreps()
         if not breps:
@@ -96,7 +96,7 @@ class Visualize(Rhyton):
         Visualizes the value of selected parameter for each object individually.
         Applies a user-defined color gradient to the values.
         """
-        from color import ColorScheme
+        from rhyton.color import ColorScheme
 
         breps = GetBreps()
         if not breps:
@@ -181,7 +181,8 @@ class ColorSchemeEditor(Rhyton):
         Inits a new ColorSchemeEditor Instance. Asks the user to select
         a color scheme and opens a dialog to edit the colors.
         """
-        from color import ColorScheme
+        from rhyton.color import ColorScheme
+
         schemeName = self.showSchemes()
         if not schemeName:
             return
@@ -200,7 +201,8 @@ class ColorSchemeEditor(Rhyton):
         Returns:
             str: The name of the selected color scheme.
         """
-        from color import ColorScheme
+        from rhyton.color import ColorScheme
+
         schemes = ColorScheme().schemes.keys()
         if not schemes:
             SelectionWindow.showWarning("No color schemes available, Use 'Visualize Data by Grouping' first.")
@@ -217,7 +219,8 @@ class ColorSchemeEditor(Rhyton):
         Args:
             schemeName (str): The name of the color scheme to edit.
         """
-        from color import ColorScheme
+        from rhyton.color import ColorScheme
+
         scheme = ColorScheme().schemes.get(schemeName)
         return SelectionWindow.dictBox(scheme, message=schemeName)
     
@@ -302,9 +305,7 @@ class Export(Rhyton):
         Returns:
             list(str): A list of user text keys.
         """
-        print('before')
         keys = sorted(list(ElementUserText.getKeys(guids)))
-        print('after')
         options = cls.getCheckboxDefaults(flag, keys=keys)
         selectedOptions = SelectionWindow.showBoxes(options)
         if not selectedOptions:

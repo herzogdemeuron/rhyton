@@ -12,8 +12,8 @@ import rhinoscriptsyntax as rs
 from Rhino.Geometry import Line
 
 # rhyton imports
-from main import Rhyton
-from utils import Format, toList, detectType
+from rhyton.main import Rhyton
+from rhyton.utils import Format, toList, detectType
 
 
 class ElementOverrides(Rhyton):
@@ -55,8 +55,8 @@ class ElementOverrides(Rhyton):
         Args:
             overrides (list(dict)): A dictionary or a list of dictionaries.
         """
-        from color import Color
-        from ui import ProgressBar
+        from rhyton.color import Color
+        from rhyton.ui import ProgressBar
 
         overrides = toList(overrides)
         originalColors = DocumentConfigStorage().get(
@@ -95,8 +95,8 @@ class ElementOverrides(Rhyton):
         Args:
             guids (str): The ids of the objects.
         """
-        from color import Color
-        from ui import ProgressBar
+        from rhyton.color import Color
+        from rhyton.ui import ProgressBar
 
         originalColors = DocumentConfigStorage().get(
                 Rhyton().extensionOriginalColors, defaultdict())
@@ -160,8 +160,8 @@ class TextDot(Rhyton):
         Returns:
             list: The input list of dicts with the guids of the text dots added.
         """
-        from color import Color
-        from ui import ProgressBar
+        from rhyton.color import Color
+        from rhyton.ui import ProgressBar
 
         data = toList(data)
         textDots = dict()
@@ -549,7 +549,7 @@ class Layer(Rhyton):
             data (dict): A dictionary or list of dictionaries.
             depth (int): The maximum depth of sublayer names to add.
         """
-        from ui import ProgressBar
+        from rhyton.ui import ProgressBar
 
         guids = toList(guids)
 
