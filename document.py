@@ -334,11 +334,9 @@ class ElementUserText(Rhyton):
             data (list(dict)): A list of dictionaries describing the 
             keyPrefix (str, optional): The prefix for all keys. Defaults to "".
         """
-        from ui import ProgressBar
         
         data = toList(data)
 
-        # with ProgressBar(len(data), label="Applying User Data") as bar:
         for entry in data:
             guid = entry[cls.GUID]
             del entry[cls.GUID]
@@ -348,7 +346,6 @@ class ElementUserText(Rhyton):
                         guid,
                         key=key,
                         value=Format.value(value))
-                # bar.update()
 
     @classmethod
     def get(cls, guids, keys=None):
@@ -601,4 +598,13 @@ def GetBreps(filterByTypes=[8, 16, 1073741824]):
 
 
 def GetFilePath(ExtensionFilter):
+    """
+    Gets a file path from the user.
+
+    Args:
+        ExtensionFilter (str): The file extension filter.
+
+    Returns:
+        str: The file path.
+    """
     return rs.OpenFileName(filter=ExtensionFilter)

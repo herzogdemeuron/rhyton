@@ -11,7 +11,6 @@ from collections import defaultdict
 
 # rhyton imports
 from main import Rhyton
-from ui import SelectionWindow
 from document import DocumentConfigStorage, ElementUserText, ElementOverrides
 
 class Color:
@@ -311,6 +310,16 @@ class ColorScheme(Rhyton):
         return colors
     
     def _filterColors(self, excludeColors, colors):
+        """
+        Filters a list of colors.
+
+        Args:
+            excludeColors (list): A list of colors to exclude.
+            colors (list): A list of colors to filter.
+
+        Returns:
+            lsit: A filtered list of colors.
+        """
         if excludeColors:
             availableColors = filter(
                 lambda color: color not in excludeColors, colors)
@@ -372,7 +381,9 @@ class ColorRange:
 
 
 class Gradient:
-
+    """
+    Class for working with gradients.
+    """
     @classmethod
     def betweenRgbColors(cls, count, start, end):
         """
@@ -390,6 +401,17 @@ class Gradient:
 
     @staticmethod
     def _getRange(start, end, count):
+        """
+        Gets a range of values.
+
+        Args:
+            start (int): The start value.
+            end (int): The end value.
+            count (int): The total amount of values to return.
+
+        Returns:
+            list: A list of values.
+        """
         if start == end:
             return repeat(start, count)
 

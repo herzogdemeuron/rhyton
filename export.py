@@ -1,3 +1,6 @@
+"""
+Module for exporting data to various formats.
+"""
 # python standard imports
 import os
 import csv
@@ -9,9 +12,21 @@ from main import Rhyton
 
 
 class ExportBase(Rhyton):
-
+    """
+    Base class for all exporters.
+    """
     @classmethod
     def prepFile(cls, file, extension):
+        """
+        Prepares the file path for writing.
+
+        Args:
+            file (str): The file path.
+            extension (str): The file extension.
+
+        Returns:
+            str: The file path.
+        """
         if not file:
             now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             file = '{}/{}.{}'.format(Rhyton.HDM_DT_DIR, now, extension.lower())
@@ -23,9 +38,21 @@ class ExportBase(Rhyton):
         return file
     
 class CsvExporter(ExportBase):
-    
+    """
+    Exports data to a csv file.
+    """
     @classmethod
     def write(cls, data, file=None):
+        """
+        Writes data to a csv file.
+
+        Args:
+            data (dict): The data to write.
+            file (str, optional): The file path. Defaults to None.
+
+        Returns:
+            str: The file path.
+        """
         import itertools
         file = cls.prepFile(file, 'csv')
         keys = [d.keys() for d in data]
@@ -65,9 +92,21 @@ class CsvExporter(ExportBase):
 
 
 class JsonExporter(ExportBase):
-    
+    """
+    Exports data to a json file.
+    """
     @classmethod
     def write(cls, data, file=None):
+        """
+        Writes data to a json file.
+
+        Args:
+            data (dict): The data to write.
+            file (str, optional): The file path. Defaults to None.
+
+        Returns:
+            str: The file path.
+        """
         file = cls.prepFile(file, 'json')
         with open(file, 'w') as f:
             f.write(json.dumps(data, encoding="utf-8", ensure_ascii=False))
@@ -76,6 +115,16 @@ class JsonExporter(ExportBase):
 
     @staticmethod
     def append(data, file):
+        """
+        Appends data to a json file.
+
+        Args:
+            data (dict): The data to append.
+            file (str): The file path.
+
+        Returns:
+            str: The file path.
+        """
         with open(file, 'r') as f:
             existingData = json.load(f)
         if existingData:

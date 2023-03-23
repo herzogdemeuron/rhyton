@@ -1,3 +1,7 @@
+"""
+Base module for the rthyton package.
+"""
+
 class Rhyton(object):
     """
     Base class to provide a shared data environment between sub-classes.

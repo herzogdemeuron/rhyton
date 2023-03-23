@@ -5,7 +5,6 @@ Provides ready-made functions that can be used by buttons in any extension.
 # python standard imports
 import os
 from datetime import datetime
-from contextlib import contextmanager
 
 # rhino imports
 import rhinoscriptsyntax as rs
@@ -175,6 +174,10 @@ class Visualize(Rhyton):
 
 class ColorSchemeEditor(Rhyton):
     def __init__(self):
+        """
+        Inits a new ColorSchemeEditor Instance. Asks the user to select
+        a color scheme and opens a dialog to edit the colors.
+        """
         from color import ColorScheme
         schemeName = self.showSchemes()
         if not schemeName:
@@ -188,12 +191,24 @@ class ColorSchemeEditor(Rhyton):
     
     @classmethod
     def showSchemes(cls):
+        """
+        Ask the user to select a color scheme.
+
+        Returns:
+            str: The name of the selected color scheme.
+        """
         from color import ColorScheme
         return SelectionWindow.show(
                 ColorScheme().schemes.keys(), message="Select Color Scheme:")
 
     @classmethod
     def showColors(cls, schemeName):
+        """
+        Presents the user a dialog to edit the colors of a color scheme.
+
+        Args:
+            schemeName (str): The name of the color scheme to edit.
+        """
         from color import ColorScheme
         scheme = ColorScheme().schemes.get(schemeName)
         return SelectionWindow.dictBox(scheme, message=schemeName)
@@ -449,6 +464,16 @@ class Powerbi(Rhyton):
 
     @classmethod
     def show(cls):
+        """
+        This method is used to start PowerBI.
+        It checks if PowerBI is already running and if not, it opens it.
+        The user can select a pre-defined template or load a custom template.
+        When a pre-defined template is selected, certain parameters are fixed
+        to ensure that the query and visuals in powerbi do not break. 
+        The user is asked to select a parameter to visualize which is then 
+        renamend to meet the PowerBI template requirements.
+        The data is then written to a json file and PowerBI is opened.
+        """
         pbiRunning = cls._processExists('PBIDesktop.exe')
         if pbiRunning:
             print("powerbi already running")
@@ -491,6 +516,18 @@ class Powerbi(Rhyton):
         
     @classmethod
     def update(cls):
+        """
+        This method is used to update PowerBI.
+        It get the current PowerBI template and chooses the correct method for
+        updating the data.
+
+        These methods are::
+
+            - updateCustomTemplate
+            - updatePredefinedTemplate
+        
+        The data is then written to a json file and PowerBI is opened.
+        """
         templateFlag = Rhyton().extensionName + cls.POWERBI + cls.POWERBI_TEMPLATE
         config = DocumentConfigStorage().get(templateFlag)
         if config[cls.POWERBI_TEMPLATE] == cls.CUSTOM_TEMPLATE:
@@ -516,11 +553,14 @@ class Powerbi(Rhyton):
         JsonExporter.append(data, cls.POWERBI_DATAFILE)
 
     @classmethod
-    def undoUpdate(cls):
-        pass
-
-    @classmethod
     def _pickTemplate(cls):
+        """
+        This method is used to pick a PowerBI template.
+        It checks if the PowerBI template directory exists. If not, it is created.
+        It then searches for all files with the extension ``.pbit`` and adds them
+        to a list of templates. The user is then asked to select a template.
+        The seleceted templates is returned.
+        """   
         if not os.path.exists(cls.POWERBI_TEMPLATES_DIR):
             os.makedirs(cls.POWERBI_TEMPLATES_DIR)
 
@@ -533,6 +573,22 @@ class Powerbi(Rhyton):
 
     @classmethod
     def _getData(cls, guids, fixedKeys=[], vizKey=None):
+        """
+        This method is used to get the data for PowerBI.
+        It temporarily adds layer information to the object user text.
+        If no fixed keys are provided, the user is asked to select the keys
+        for export. It then gets the data for the selected keys.
+        The data for the visualization parameter is renamed to meet the PowerBI
+        template requirements. All extension prefixes are removed from the keys.
+
+        Args:
+            guids (list(str)): A list of Rhino objects ids.
+            fixedKeys (list, optional): A list of keys that need to be exported. Defaults to [].
+            vizKey (str, optional): The key of the data used for visualization. Defaults to None.
+
+        Returns:
+            dict: The data for PowerBI.
+        """
         with Layer.hierarchyInformation(guids):
             flag = '.'.join([Rhyton().extensionPowerbi, cls.EXPORT_CHECKBOXES])
             if fixedKeys:
@@ -560,6 +616,15 @@ class Powerbi(Rhyton):
     
     @staticmethod
     def _processExists(processName):
+        """
+        This method is used to check if a process is running or not.
+
+        Args:
+            processName (str): The name of the process.
+
+        Returns:
+            bool: True if the process is running, False otherwise.
+        """
         import subprocess
         # checks if a process is running or not
         call = 'TASKLIST', '/FI', 'imagename eq %s' % processName
@@ -574,6 +639,15 @@ class Powerbi(Rhyton):
     
     @staticmethod
     def absoluteFilePaths(directory):
+        """
+        This method is used to get all absolute file paths in a directory.
+
+        Args:
+            directory (str): The directory to search.
+
+        Yields:
+            str: The absolute file paths.
+        """
         for dirpath,_,filenames in os.walk(directory):
             for f in filenames:
                 yield os.path.abspath(os.path.join(dirpath, f))
@@ -596,20 +670,50 @@ class Powerbi(Rhyton):
     
 
 class ProgressBar():
+    """
+    This class is used to create and update a progress bar.
+    """
     def __init__(self, upper, label="Calculating...", lower=1):
+        """
+        The constructor for the ProgressBar class.
+
+        Args:
+            upper (int): The upper limit of the progress bar.
+            label (str, optional): The text to display in the progress bar. Defaults to "Calculating...".
+            lower (int, optional): the lower limit of the progress bar. Defaults to 1.
+        """
         self.upper = upper
         self.label = label
         self.lower = lower
         self.position = 0
         
     def __enter__(self):
+        """
+        This method is used to show the progress bar.
+
+        Returns:
+            object: The progress bar object.
+        """
         rs.StatusBarProgressMeterShow(
                 self.label, self.lower, self.upper, embed_label=True, show_percent=True)
         return self.__class__(self.upper)
     
     def __exit__(self, exc_type, exc_val, traceback):
+        """
+        This method is used to hide the progress bar.
+
+        Args:
+            exc_type (_type_): _description_
+            exc_val (_type_): _description_
+            traceback (_type_): _description_
+        """
         rs.StatusBarProgressMeterHide()
 
     def update(self):
+        """
+        This method is used to update the progress bar.
+        The poistions is automatically incremented by 1 
+        each time the method is called.
+        """
         self.position += 1
         rs.StatusBarProgressMeterUpdate(self.position, absolute=True)
