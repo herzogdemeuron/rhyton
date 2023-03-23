@@ -162,6 +162,8 @@ class Visualize(Rhyton):
                 print('ERROR: No info about original colors available, select elements and try again.')
 
             guids = data.keys()
+            # check if guids are still valid
+            guids = [guid for guid in guids if rs.IsObject(guid)]
             Group.dissolve(guids)
             ElementOverrides.clear(guids)
             textDots = DocumentConfigStorage().get(
