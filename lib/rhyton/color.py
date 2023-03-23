@@ -133,7 +133,7 @@ class ColorScheme:
             schemeName (string): The name of the color scheme
 
         Returns:
-            dict: Same return as ElementUserText but with key "color" added.
+            dict: Same return as :func:`rhyton.document.ElementUserText.getValues` but with key "color" added.
         """
         keys = ElementUserText.getValues(guids, keys=schemeName)
         colorScheme = ColorScheme()
@@ -244,8 +244,10 @@ class ColorScheme:
         Color schemes are stored as follows::
 
             {
-                <schemeName1>: {"key1": "value1"},
-                <schemeName2>: {"key1": "value1"}
+                <extensionName>.colorSchemes: {
+                    <schemeName1>: {"key1": "value1"},
+                    <schemeName2>: {"key1": "value1"}
+                }
             }
 
         Args:

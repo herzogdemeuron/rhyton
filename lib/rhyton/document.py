@@ -1,6 +1,6 @@
 """
 Module for modifying the rhino document.
-This is the only module in this package that actually modifies the Rhino document.
+This is the only module in this package that actually modifies a Rhino file.
 """
 # python standard imports
 import json
@@ -90,7 +90,7 @@ class ElementOverrides:
     def clear(cls, guids):
         """
         Clear the color overrides for given objects.
-        The original colors will be restored from the element's user text.
+        The original colors will be restored from the ``Document Text``.
 
         Args:
             guids (str): The ids of the objects.
@@ -267,8 +267,8 @@ class DocumentConfigStorage:
 
     def save(self, flag, data):
         """
-        Saves the given data under the provided flag in the Rhino document user text.
-        All data is saved inside the "RHYTON_CONFIG" field.
+        Saves the given data under the provided flag in the ``Rhino Document Text``.
+        All data is saved inside the ``RHYTON_CONFIG`` field.
         The input data must be valid JSON.
 
         Args:
@@ -449,6 +449,17 @@ class ElementUserText:
         
     @staticmethod
     def aggregate(guids, keys=[]):
+        """
+        Aggregates user text values from given objects.
+        Non-numeric values will cause an error.
+
+        Args:
+            guids (str): A list of Rhino objects ids.
+            keys (list, optional): A list of keys. Defaults to [].
+
+        Returns:
+            float: The sum of all values.
+        """
         keys = toList(keys)
         values = []
         for guid in guids:
@@ -461,6 +472,13 @@ class ElementUserText:
     
     @staticmethod
     def remove(guids, keys):
+        """
+        Removes user text from given objects.
+
+        Args:
+            guids (str): A list of Rhino objects ids.
+            keys (str): A list of keys.
+        """
         guids = toList(guids)
         for guid in guids:
             for key in keys:

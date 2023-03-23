@@ -400,8 +400,7 @@ class SelectionWindow:
             message (str, optional): The message to the user. Defaults to None.
 
         Returns:
-            mixed: The value of the selected key from the input dictionary or 
-                    the selected item from the input list.
+            mixed: The value of the selected key from the input dictionary or the selected item from the input list.
         """
         if not type(options) == dict:
             options = dict((i, i) for i in options)
@@ -431,8 +430,7 @@ class SelectionWindow:
             message (str, optional): The message to the user. Defaults to None.
 
         Returns:
-            list(tuple): A list of tuples indicating
-                    the name and state of each checkbox.
+            list(tuple): A list of tuples indicating the name and state of each checkbox.
         """ 
         return rs.CheckListBox(
                 sorted(options),
