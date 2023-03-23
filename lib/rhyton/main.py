@@ -94,9 +94,6 @@ class Rhyton(object):
         """
         Gets a settings configuration from the document text.
 
-        Args:
-            extensionName (str, optional): The name of the extension. Defaults to 'self'.
-
         Returns:
             dict: The configuration.
         """
@@ -116,8 +113,7 @@ class Rhyton(object):
         Generates a settings configuration.
 
         Args:
-            keyPrefix (str, optional): The prefix to use before every key. Defaults to "".
-            unitSuffix (str, optional): The unit suffix. Defaults to "".
+            unitSuffix (str, optional): The unit suffix. Defaults to "m".
             roundingDecimals (int, optional): The rounding precision for display values. Defaults to 2.
 
         Returns:

@@ -1,16 +1,16 @@
-"""
+"""power
 Module for general utily functions.
 """
 # rhyton imports
 from rhyton.main import Rhyton
 
 
-class Format(Rhyton):
+class Format:
     """
     Class for formatting keys and values to meet sql-standards
     """
-    @classmethod
-    def key(cls, key):
+    @staticmethod
+    def key(key):
         """
         Sanitize given key to meet rhyton standards.
 
@@ -20,10 +20,10 @@ class Format(Rhyton):
         Returns:
             str: The sanitized key.
         """
-        return key.replace(cls.WHITESPACE, cls.DELIMITER).lower()
+        return key.replace(Rhyton.WHITESPACE, Rhyton.DELIMITER).lower()
 
-    @classmethod
-    def value(cls, value):
+    @staticmethod
+    def value(value):
         """
         Sanitize given value to meet rhyton standards.
 
@@ -33,10 +33,10 @@ class Format(Rhyton):
         Returns:
             str: The sanitized value.
         """
-        return str(value).replace(cls.DELIMITER, cls.WHITESPACE).title()
+        return str(value).replace(Rhyton.DELIMITER, Rhyton.WHITESPACE).title()
 
-    @classmethod
-    def formatNumber(cls, number, key):
+    @staticmethod
+    def formatNumber(number, key):
         """
         Formats a number.
 
@@ -46,15 +46,15 @@ class Format(Rhyton):
         Returns:
             float: The formatted number.
         """
-        suffix = cls.UNIT_SUFFIX
+        suffix = Rhyton.UNIT_SUFFIX
         if 'area' in key.lower():
-            suffix = cls.UNIT_SUFFIX + '2'
+            suffix = Rhyton.UNIT_SUFFIX + '2'
 
         if 'volume' in key.lower():
-            suffix = cls.UNIT_SUFFIX + '3'
+            suffix = Rhyton.UNIT_SUFFIX + '3'
 
-        if cls.ROUNDING_DECIMALS != 0:
-            return " ".join([str(round(number, cls.ROUNDING_DECIMALS)), suffix])
+        if Rhyton.ROUNDING_DECIMALS != 0:
+            return " ".join([str(round(number, Rhyton.ROUNDING_DECIMALS)), suffix])
         else:
             return " ".join([str(int(number)), suffix])
     

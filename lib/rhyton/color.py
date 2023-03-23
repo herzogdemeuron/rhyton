@@ -58,7 +58,7 @@ class Color:
         return tuple(int(hexColor[i:i+2], 16) for i in (0, 2, 4))
 
 
-class ColorScheme(Rhyton):
+class ColorScheme:
     """
     Class for handling relationships between labels and colors.
     """
@@ -122,8 +122,8 @@ class ColorScheme(Rhyton):
 
         return scheme
 
-    @classmethod
-    def apply(cls, guids, schemeName):
+    @staticmethod
+    def apply(guids, schemeName):
         """
         Applies a rhyton color scheme to given objects.
         Updates the color scheme with new keys and colors.
@@ -151,16 +151,16 @@ class ColorScheme(Rhyton):
         for entry in objectData:
             value = entry.get(schemeName)
             if value:
-                entry[cls.COLOR] = keyColors[value]
+                entry[Rhyton.COLOR] = keyColors[value]
             else:
-                entry[cls.COLOR] = cls.HEX_WHITE
-                entry[schemeName] = cls.NOT_AVAILABLE
+                entry[Rhyton.COLOR] = Rhyton.HEX_WHITE
+                entry[schemeName] = Rhyton.NOT_AVAILABLE
 
         ElementOverrides.apply(objectData)
         return objectData
 
-    @classmethod
-    def applyGradient(cls, guids, schemeName, gradient):
+    @staticmethod
+    def applyGradient(guids, schemeName, gradient):
         """
         Applies a rhyton color gradient to given objects.
 
@@ -175,8 +175,8 @@ class ColorScheme(Rhyton):
         objectData = ElementUserText.get(guids, keys=schemeName)
         for entry in objectData:
             value = entry.get(schemeName)
-            if value and value != cls.WHITESPACE:
-                entry[cls.COLOR] = keyColors[value]
+            if value and value != Rhyton.WHITESPACE:
+                entry[Rhyton.COLOR] = keyColors[value]
 
         ElementOverrides.apply(objectData)
         return objectData
@@ -187,19 +187,10 @@ class ColorScheme(Rhyton):
 
         A color scheme has the following layout::
 
-            current:
-            {
-                "name": <schemeName>,
-                "data":{"key1": <hexcolor>}
-            }
-
-            proposed:
             {
                 <schemeName>: {"key1": <hexcolor>}
             }
 
-        Limitations:
-            - the number of keys must be less than 20??
         Args:
             schemeName (string): The name of the color scheme
             keys (string): A set of keys
@@ -281,9 +272,11 @@ class ColorScheme(Rhyton):
     def getColors(self, count, excludeColors=[]):
         """
         Gets a given amount of colors.
+
         Args:
             count (int): The number of colors to get
             excludeColors (string, optional): List of colors to exclude. Defaults to None.
+
         Returns:
             string: A list of colors
         """

@@ -16,7 +16,7 @@ from rhyton.document import GetBreps, ElementUserText, Group, TextDot, GetFilePa
 from rhyton.document import DocumentConfigStorage, ElementOverrides, Layer
 from rhyton.utils import Format, groupGuidsBy
 
-class Visualize(Rhyton):
+class Visualize:
     """
     Class for visualizing user text on Rhino objects.
     """
@@ -49,11 +49,11 @@ class Visualize(Rhyton):
         cls.reset()
         rs.EnableRedraw(False)
         objectData = ColorScheme.apply(breps, selectedKey)
-        objectData = groupGuidsBy(objectData, [selectedKey, cls.COLOR])
+        objectData = groupGuidsBy(objectData, [selectedKey, Rhyton.COLOR])
         objectData = TextDot.add(
                 objectData, selectedValue, prefixKey=selectedKey)
         for item in objectData:
-            Group.create(item[cls.GUID], item[selectedKey])
+            Group.create(item[Rhyton.GUID], item[selectedKey])
         
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
@@ -80,12 +80,12 @@ class Visualize(Rhyton):
         cls.reset()
         rs.EnableRedraw(False)
         objectData = {}
-        objectData[cls.GUID] = breps
-        objectData[cls.COLOR] = ColorScheme().getColors(1)[0]
+        objectData[Rhyton.GUID] = breps
+        objectData[Rhyton.COLOR] = ColorScheme().getColors(1)[0]
         ElementOverrides.apply(objectData)
         objectData = TextDot.add(objectData, selectedKey)
         for item in objectData:
-            Group.create(item[cls.GUID])
+            Group.create(item[Rhyton.GUID])
         
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
@@ -108,13 +108,13 @@ class Visualize(Rhyton):
         if not selectedKey:
             return
         
-        color = rs.GetColor(cls.STANDARD_COLOR_1)
+        color = rs.GetColor(Rhyton.STANDARD_COLOR_1)
         if not color:
             return
         
         colorStart = [color[0], color[1], color[2]]
         
-        color = rs.GetColor(cls.STANDARD_COLOR_2)
+        color = rs.GetColor(Rhyton.STANDARD_COLOR_2)
         if not color:
             return    
         
@@ -127,13 +127,13 @@ class Visualize(Rhyton):
         objectData = TextDot.add(
                 objectData, selectedKey, aggregate=False)
         for item in objectData:
-            Group.create(item[cls.GUID])
+            Group.create(item[Rhyton.GUID])
 
         rs.UnselectAllObjects()
         rs.EnableRedraw(True)
     
-    @classmethod
-    def reset(cls):
+    @staticmethod
+    def reset():
         """
         Resets the visualization for 'all' or 'selected' objects.
         Ungroups visualized objects.
@@ -175,7 +175,7 @@ class Visualize(Rhyton):
         rs.EnableRedraw(True)
     
 
-class ColorSchemeEditor(Rhyton):
+class ColorSchemeEditor:
     def __init__(self):
         """
         Inits a new ColorSchemeEditor Instance. Asks the user to select
@@ -193,8 +193,8 @@ class ColorSchemeEditor(Rhyton):
         
         ColorScheme().save(schemeName, keyValues)
     
-    @classmethod
-    def showSchemes(cls):
+    @staticmethod
+    def showSchemes():
         """
         Ask the user to select a color scheme.
 
@@ -211,8 +211,8 @@ class ColorSchemeEditor(Rhyton):
         return SelectionWindow.show(
                 ColorScheme().schemes.keys(), message="Select Color Scheme:")
 
-    @classmethod
-    def showColors(cls, schemeName):
+    @staticmethod
+    def showColors(schemeName):
         """
         Presents the user a dialog to edit the colors of a color scheme.
 
@@ -233,7 +233,7 @@ class ColorSchemeEditor(Rhyton):
         pass
 
 
-class Export(Rhyton):
+class Export:
 
     def __init__(self):
         """
@@ -247,7 +247,7 @@ class Export(Rhyton):
             return
         
         exportMethod = SelectionWindow.show(
-                [self.CSV, self.JSON],
+                [Rhyton.CSV, Rhyton.JSON],
                 message='Select export format:')
         if not exportMethod:
             return
@@ -255,14 +255,14 @@ class Export(Rhyton):
         # with Layer.hierarchyInformation(breps):
         depth =  Layer.maxHierarchy(breps)
         Layer.addLayerHierarchy(breps, depth)
-        flag = '.'.join([self.extensionName, self.EXPORT_CHECKBOXES])
+        flag = '.'.join([Rhyton().extensionName, Rhyton.EXPORT_CHECKBOXES])
         selectedKeys = self.getExportKeys(flag, breps)
         if not selectedKeys:
             return
 
-        if exportMethod == self.CSV:
+        if exportMethod == Rhyton.CSV:
             self.toCSV(breps, selectedKeys)
-        elif exportMethod == self.JSON:
+        elif exportMethod == Rhyton.JSON:
             self.toJSON(breps, selectedKeys)
 
     def toCSV(self, guids, keys):
@@ -467,19 +467,18 @@ class SelectionWindow:
         rs.MessageBox(message, 48, Rhyton().extensionName.title())
 
 
-class Powerbi(Rhyton):
+class Powerbi:
     """
     Class for opening and updating PowerBI.
     """
     CUSTOM_TEMPLATE = "Load Custom Template"
+    POWERBI_TEMPLATE = '.template'
     POWERBI_DATAFILE = Rhyton.HDM_DT_DIR + '/RhinoToolbarExtensions/powerbi.json'
-    POWERBI_TEMPLATES_REPO = 'https://github.com/herzogdemeuron/powerbitemplates.git'
     POWERBI_TEMPLATES_DIR = Rhyton.HDM_DT_DIR + '/RhinoToolbarExtensions/powerbi-templates'
     POWERBI_TEMPLATES_EXTENSION = '.pbit'
     TIMESTAMP = "timestamp"
     # fixed keys are necessary to ensure the powerbi visuals do not break
     VIZ_KEY = "visualization_parameter"
-    POWERBI_TEMPLATE = '.template'
 
     @classmethod
     def show(cls):
@@ -519,7 +518,8 @@ class Powerbi(Rhyton):
                 return
         
             allKeys = ElementUserText.getKeys(breps)
-            vizKey = SelectionWindow.show(allKeys, message="Select Parameter to Visualize:")
+            vizKey = SelectionWindow.show(
+                    allKeys, message="Select Parameter to Visualize:")
             config[cls.VIZ_KEY] = vizKey
             fixedKeys = cls.fixedKeys()
             fixedKeys.append(vizKey)
@@ -527,7 +527,10 @@ class Powerbi(Rhyton):
             if not data:
                 return
 
-        templateFlag = Rhyton().extensionName + cls.POWERBI + cls.POWERBI_TEMPLATE
+        templateFlag = ''.join([
+                Rhyton().extensionName,
+                Rhyton.POWERBI,
+                cls.POWERBI_TEMPLATE])
         DocumentConfigStorage().save(templateFlag, config)
 
         JsonExporter.write(data, file=cls.POWERBI_DATAFILE)
@@ -547,7 +550,10 @@ class Powerbi(Rhyton):
         
         The data is then written to a json file and PowerBI is opened.
         """
-        templateFlag = Rhyton().extensionName + cls.POWERBI + cls.POWERBI_TEMPLATE
+        templateFlag = ''.join([
+                Rhyton().extensionName,
+                Rhyton.POWERBI,
+                cls.POWERBI_TEMPLATE])
         config = DocumentConfigStorage().get(templateFlag)
         if config[cls.POWERBI_TEMPLATE] == cls.CUSTOM_TEMPLATE:
             breps = GetBreps()
@@ -602,14 +608,16 @@ class Powerbi(Rhyton):
 
         Args:
             guids (list(str)): A list of Rhino objects ids.
-            fixedKeys (list, optional): A list of keys that need to be exported. Defaults to [].
-            vizKey (str, optional): The key of the data used for visualization. Defaults to None.
+            fixedKeys (list, optional): A list of keys that need to be exported. 
+            Defaults to [].
+            vizKey (str, optional): The key of the data used for visualization. 
+            Defaults to None.
 
         Returns:
             dict: The data for PowerBI.
         """
         with Layer.hierarchyInformation(guids):
-            flag = '.'.join([Rhyton().extensionPowerbi, cls.EXPORT_CHECKBOXES])
+            flag = '.'.join([Rhyton().extensionPowerbi, Rhyton.EXPORT_CHECKBOXES])
             if fixedKeys:
                 selectedKeys = fixedKeys
             else:
@@ -620,7 +628,7 @@ class Powerbi(Rhyton):
             data = ElementUserText.get(guids, selectedKeys)
 
         timeStamp = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-        prefix = Rhyton().extensionName + cls.DELIMITER
+        prefix = Rhyton().extensionName + Rhyton.DELIMITER
         for d in data:
             if vizKey and vizKey in d:
                 d[cls.VIZ_KEY] = d.pop(vizKey)
@@ -671,8 +679,8 @@ class Powerbi(Rhyton):
             for f in filenames:
                 yield os.path.abspath(os.path.join(dirpath, f))
 
-    @classmethod
-    def fixedKeys(cls):
+    @staticmethod
+    def fixedKeys():
         """
         Generates fixed keys when needed. This cannot be done as a
         class variable because the extension name might change 
@@ -682,10 +690,10 @@ class Powerbi(Rhyton):
         """
         name = Rhyton().extensionName
         return [
-            cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, cls.NAME]),
-            cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, "1"]),
-            cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, "2"]),
-            cls.DELIMITER.join([name, cls.LAYER_HIERARCHY, "3"])]
+            Rhyton.DELIMITER.join([name, Rhyton.LAYER_HIERARCHY, Rhyton.NAME]),
+            Rhyton.DELIMITER.join([name, Rhyton.LAYER_HIERARCHY, "1"]),
+            Rhyton.DELIMITER.join([name, Rhyton.LAYER_HIERARCHY, "2"]),
+            Rhyton.DELIMITER.join([name, Rhyton.LAYER_HIERARCHY, "3"])]
     
 
 class ProgressBar():

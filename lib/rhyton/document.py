@@ -16,7 +16,7 @@ from rhyton.main import Rhyton
 from rhyton.utils import Format, toList, detectType
 
 
-class ElementOverrides(Rhyton):
+class ElementOverrides:
     """
     Class for handling color overrides on Rhino objects.
     """
@@ -64,7 +64,7 @@ class ElementOverrides(Rhyton):
 
         with ProgressBar(len(overrides), label=cls.OVERRIDE_PROGRESS) as bar:
             for override in overrides:
-                guids = override[cls.GUID]
+                guids = override[Rhyton.GUID]
                 guids = toList(guids)
                 
                 for guid in guids:
@@ -72,15 +72,15 @@ class ElementOverrides(Rhyton):
                     color = tuple([color[0], color[1], color[2]])
                     if not guid in originalColors:
                         original = dict()
-                        original[cls.COLOR] = Color.RGBtoHEX(color)
-                        original[cls.COLOR_SOURCE] = rs.ObjectColorSource(guid)
+                        original[Rhyton.COLOR] = Color.RGBtoHEX(color)
+                        original[Rhyton.COLOR_SOURCE] = rs.ObjectColorSource(guid)
                         originalColors[guid] = original
                         
-                    color = override.get(cls.COLOR, cls.HEX_WHITE)
+                    color = override.get(Rhyton.COLOR, Rhyton.HEX_WHITE)
                     rs.ObjectColor(
                             guid,
                             Color.HEXtoRGB(
-                                    override.get(cls.COLOR, cls.HEX_WHITE)))
+                                    override.get(Rhyton.COLOR, Rhyton.HEX_WHITE)))
                 bar.update()
 
         AffectedElements.save(Rhyton().extensionOriginalColors, originalColors)
@@ -103,31 +103,34 @@ class ElementOverrides(Rhyton):
         
         with ProgressBar(len(guids), label=cls.OVERRIDE_PROGRESS) as bar:
             for guid in guids:
-                hexColor = originalColors.get(guid, dict()).get(cls.COLOR)
+                hexColor = originalColors.get(guid, dict()).get(Rhyton.COLOR)
                 if hexColor:
                     rgbColor = Color.HEXtoRGB(hexColor)
                     rs.ObjectColor(guid, rgbColor)
 
                 rs.ObjectColorSource(guid, originalColors.get(
-                        guid, dict()).get(cls.COLOR_SOURCE, 0))
+                        guid, dict()).get(Rhyton.COLOR_SOURCE, 0))
                 bar.update()
 
         AffectedElements.remove(Rhyton().extensionOriginalColors, guids)
 
 
-class TextDot(Rhyton):
+class TextDot:
     """
     Class for handling Rhino text dot objects.
     """
-    OVERRIDE_PROGRESS = "Text Dots..."
-    @classmethod
-    def add(cls, data, valueKey, aggregate=True, prefixKey=None):
+
+    @staticmethod
+    def add(data, valueKey, aggregate=True, prefixKey=None):
         """
         Adds a new text dot to the document.
         The textdot location is the center of the bounding box of given guid(s).
         Provide a list of guids, if you want to place the text dot
         in the middle of multiple objects.
-        Hint: The input dictionary can contain unrelated keys - they will be ignored.
+
+        Note:
+            The input dictionary can contain unrelated keys - they will be ignored.
+
         This allows you to use the same input for ''TextDot.add'' and ''ElementOverrides.apply''
 
         Examples::
@@ -165,27 +168,27 @@ class TextDot(Rhyton):
 
         data = toList(data)
         textDots = dict()
-        with ProgressBar(len(data), label=cls.OVERRIDE_PROGRESS) as bar:
+        with ProgressBar(len(data), label="Text Dots...") as bar:
             for dot in data:
-                dot[cls.GUID] = toList(dot[cls.GUID])
-                bBox = rs.BoundingBox(dot[cls.GUID])
+                dot[Rhyton.GUID] = toList(dot[Rhyton.GUID])
+                bBox = rs.BoundingBox(dot[Rhyton.GUID])
                 if aggregate:
                     try:
                         value = ElementUserText.aggregate(
-                                dot[cls.GUID], valueKey)
+                                dot[Rhyton.GUID], valueKey)
                         value = Format.formatNumber(value, valueKey)
                     except:
-                        value = len(dot[cls.GUID])
+                        value = len(dot[Rhyton.GUID])
                 else:
                     value = ElementUserText.getValue(
-                                dot[cls.GUID][0], valueKey)
+                                dot[Rhyton.GUID][0], valueKey)
                     try:
                         value = Format.formatNumber(float(value), valueKey)
                     except:
-                        if value == cls.WHITESPACE:
-                            value = cls.EMPTY
+                        if value == Rhyton.WHITESPACE:
+                            value = Rhyton.EMPTY
                         elif value == None:
-                            value = cls.NOT_AVAILABLE
+                            value = Rhyton.NOT_AVAILABLE
 
                 if prefixKey:
                     value = "{}: {}".format(dot[prefixKey], value)
@@ -194,10 +197,10 @@ class TextDot(Rhyton):
                 textDot = rs.AddTextDot(value, point)
                 rs.ObjectColor(
                         textDot,
-                        Color.HEXtoRGB(dot.get(cls.COLOR, cls.HEX_WHITE)))
-                rs.TextDotFont(textDot, cls.FONT)
+                        Color.HEXtoRGB(dot.get(Rhyton.COLOR, Rhyton.HEX_WHITE)))
+                rs.TextDotFont(textDot, Rhyton.FONT)
                 rs.TextDotHeight(textDot, 12.0)
-                dot[cls.GUID].append(str(textDot))
+                dot[Rhyton.GUID].append(str(textDot))
                 textDots[str(textDot)] = 1
                 bar.update()
 
@@ -296,12 +299,12 @@ class DocumentConfigStorage:
         return self.storage.get(flag, default)
 
 
-class ElementUserText(Rhyton):
+class ElementUserText:
     """
     Class for handling user text on Rhino objects.
     """
-    @classmethod
-    def apply(cls, data):
+    @staticmethod
+    def apply(data):
         """
         Applies given user text to provided elements.
         The expected input format for 'data' is a dictionary containing the guid
@@ -343,17 +346,17 @@ class ElementUserText(Rhyton):
         data = toList(data)
 
         for entry in data:
-            guid = entry[cls.GUID]
-            del entry[cls.GUID]
+            guid = entry[Rhyton.GUID]
+            del entry[Rhyton.GUID]
             for key, value in entry.items():
-                key = Format.key(cls.DELIMITER.join([Rhyton().extensionName, key]))
+                key = Format.key(Rhyton.DELIMITER.join([Rhyton().extensionName, key]))
                 rs.SetUserText(
                         guid,
                         key=key,
                         value=Format.value(value))
 
-    @classmethod
-    def get(cls, guids, keys=None):
+    @staticmethod
+    def get(guids, keys=None):
         """
         Gets user text from given elements.
 
@@ -381,7 +384,7 @@ class ElementUserText(Rhyton):
 
             keys = toList(keys)
             entry = dict()
-            entry[cls.GUID] = guid
+            entry[Rhyton.GUID] = guid
             for key in keys:
                 entry[key] = detectType(rs.GetUserText(guid, key))
                 data.append(entry)
@@ -464,12 +467,12 @@ class ElementUserText(Rhyton):
                 rs.SetUserText(guid, key)
 
 
-class Group(Rhyton):
+class Group:
     """
     Class for handling Rhino groups.
     """
-    @classmethod
-    def create(cls, guids, groupName=''):
+    @staticmethod
+    def create(guids, groupName=''):
         """
         Creates a new group with given name and adds given objects to it.
         The groupname will be expanded to prevent ambiguity.
@@ -479,8 +482,8 @@ class Group(Rhyton):
             groupName (str): The basename of the group.
         """
         import uuid
-        groupName = cls.DELIMITER.join(
-                [cls.GROUP, groupName, str(uuid.uuid1())])
+        groupName = Rhyton.DELIMITER.join(
+                [Rhyton.GROUP, groupName, str(uuid.uuid1())])
         rs.AddGroup(groupName)
         rs.AddObjectsToGroup(guids, groupName)
         return groupName
@@ -505,7 +508,7 @@ class Group(Rhyton):
             rs.DeleteGroup(group)
 
 
-class Layer(Rhyton):
+class Layer:
     """
     Class for handling layer information.
     """
@@ -540,8 +543,8 @@ class Layer(Rhyton):
         """
         return max([len(rs.ObjectLayer(guid).split('::')) for guid in guids])
     
-    @classmethod
-    def addLayerHierarchy(cls, guids, depth):
+    @staticmethod
+    def addLayerHierarchy(guids, depth):
         """
         Add the layer name for each depth level of sublayers to given entries.
 
@@ -557,20 +560,20 @@ class Layer(Rhyton):
 
             for guid in guids:
                 data = dict()
-                data[cls.GUID] = guid
+                data[Rhyton.GUID] = guid
                 objectLayer = rs.ObjectLayer(guid)
-                fullHierarchy = cls.DELIMITER.join([cls.LAYER_HIERARCHY, cls.NAME])
+                fullHierarchy = Rhyton.DELIMITER.join([Rhyton.LAYER_HIERARCHY, Rhyton.NAME])
                 data[fullHierarchy] = objectLayer
                 layers = objectLayer.split('::')[:depth]
                 for index, layer in enumerate(layers, 1):
-                    key = cls.DELIMITER.join([cls.LAYER_HIERARCHY, str(index)])
+                    key = Rhyton.DELIMITER.join([Rhyton.LAYER_HIERARCHY, str(index)])
                     data[key] = layer
             
                 ElementUserText.apply(data)
                 bar.update()
     
-    @classmethod
-    def removeLayerHierarchy(cls, guids):
+    @staticmethod
+    def removeLayerHierarchy(guids):
         """
         Removes layer information from given objects user text.
 
@@ -578,7 +581,7 @@ class Layer(Rhyton):
             guids (list(str)): A list of Rhino object ids.
         """
         keys =  ElementUserText.getKeys(guids)
-        keys = [k for k in keys if cls.LAYER_HIERARCHY in k]
+        keys = [k for k in keys if Rhyton.LAYER_HIERARCHY in k]
         ElementUserText.remove(guids, keys)
 
 

@@ -11,12 +11,12 @@ from datetime import datetime
 from rhyton.main import Rhyton
 
 
-class ExportBase(Rhyton):
+class ExportBase:
     """
     Base class for all exporters.
     """
-    @classmethod
-    def prepFile(cls, file, extension):
+    @staticmethod
+    def prepFile(file, extension):
         """
         Prepares the file path for writing.
 

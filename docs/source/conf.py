@@ -59,7 +59,7 @@ ogp_site_url = "https://rhyton.readthedocs.io/"
 
 html_theme = 'revitron_sphinx_theme'
 html_theme_options = {
-    'navigation_depth': 5,
+    'navigation_depth': 4,
     'github_url': 'https://github.com/herzogdemeuron/rhyton',
     'color_scheme': 'dark'
 }
