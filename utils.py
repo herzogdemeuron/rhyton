@@ -149,3 +149,32 @@ def removePrefix(string, prefix):
         string = string[len(prefix):]
     
     return string
+
+
+def detectType(value):
+    """
+    Tries to convert a given string to a number, boolean or string.
+
+    Args:
+        value (str): The string to convert.
+    """
+    if value == None:
+        return None
+    
+    try:
+        return int(value)
+    except ValueError:
+        pass
+
+    try:
+        return float(value)
+    except ValueError:
+        pass
+
+    if value.lower() in ['true', 'yes', '1']:
+        return True
+    elif value.lower() in ['false', 'no', '0']:
+        return False
+
+    return value
+    

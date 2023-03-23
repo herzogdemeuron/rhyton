@@ -13,7 +13,7 @@ from Rhino.Geometry import Line
 
 # rhyton imports
 from main import Rhyton
-from utils import Format, toList
+from utils import Format, toList, detectType
 
 
 class ElementOverrides(Rhyton):
@@ -76,6 +76,8 @@ class ElementOverrides(Rhyton):
                         original[cls.COLOR_SOURCE] = rs.ObjectColorSource(guid)
                         originalColors[guid] = original
                         
+                    color = override.get(cls.COLOR, cls.HEX_WHITE)
+                    print(color)
                     rs.ObjectColor(
                             guid,
                             Color.HEXtoRGB(
@@ -378,7 +380,7 @@ class ElementUserText(Rhyton):
             entry = dict()
             entry[cls.GUID] = guid
             for key in keys:
-                entry[key] = rs.GetUserText(guid, key)
+                entry[key] = detectType(rs.GetUserText(guid, key))
                 data.append(entry)
 
         return data
@@ -412,12 +414,14 @@ class ElementUserText(Rhyton):
         for guid in guids:
             if keys:
                 for key in toList(keys):
-                    values.add(rs.GetUserText(guid, key))
+                    value = detectType(rs.GetUserText(guid, key))
+                    values.add(value)
             else:
                 elementKeys = rs.GetUserText(guid)
                 if elementKeys:
                     for key in elementKeys:
-                        values.add(rs.GetUserText(guid, key))
+                        value = detectType(rs.GetUserText(guid, key))
+                        values.add(value)
         
         return values
     
@@ -435,7 +439,7 @@ class ElementUserText(Rhyton):
             " " if key has no value,
             else: str of value
         """
-        return rs.GetUserText(guid, key)
+        return detectType(rs.GetUserText(guid, key))
         
     @staticmethod
     def aggregate(guids, keys=[]):

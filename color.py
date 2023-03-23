@@ -175,7 +175,7 @@ class ColorScheme(Rhyton):
         objectData = ElementUserText.get(guids, keys=schemeName)
         for entry in objectData:
             value = entry.get(schemeName)
-            if value:
+            if value and value != cls.WHITESPACE:
                 entry[cls.COLOR] = keyColors[value]
 
         ElementOverrides.apply(objectData)
@@ -198,6 +198,8 @@ class ColorScheme(Rhyton):
                 <schemeName>: {"key1": <hexcolor>}
             }
 
+        Limitations:
+            - the number of keys must be less than 20??
         Args:
             schemeName (string): The name of the color scheme
             keys (string): A set of keys
@@ -422,3 +424,4 @@ class Gradient:
             start += step
 
         return increments
+    
