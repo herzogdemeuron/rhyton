@@ -50,7 +50,8 @@ class Visualize(Rhyton):
         rs.EnableRedraw(False)
         objectData = ColorScheme.apply(breps, selectedKey)
         objectData = groupGuidsBy(objectData, [selectedKey, cls.COLOR])
-        objectData = TextDot.add(objectData, selectedValue)
+        objectData = TextDot.add(
+                objectData, selectedValue, prefixKey=selectedKey)
         for item in objectData:
             Group.create(item[cls.GUID], item[selectedKey])
         
@@ -200,6 +201,11 @@ class ColorSchemeEditor(Rhyton):
             str: The name of the selected color scheme.
         """
         from color import ColorScheme
+        schemes = ColorScheme().schemes.keys()
+        if not schemes:
+            SelectionWindow.showWarning("No color schemes available, Use 'Visualize Data by Grouping' first.")
+            return
+        
         return SelectionWindow.show(
                 ColorScheme().schemes.keys(), message="Select Color Scheme:")
 
@@ -449,7 +455,17 @@ class SelectionWindow:
         if res:
             return dict((k, v) for k, v in zip(options.keys(), res))
         
-    
+    @staticmethod
+    def showWarning(message):
+        """
+        Shows a warning to the user.
+
+        Args:
+            message (str): The message to the user.
+        """
+        rs.MessageBox(message, 48, Rhyton().extensionName.title())
+
+
 class Powerbi(Rhyton):
     """
     Class for opening and updating PowerBI.

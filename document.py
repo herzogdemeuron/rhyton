@@ -77,7 +77,6 @@ class ElementOverrides(Rhyton):
                         originalColors[guid] = original
                         
                     color = override.get(cls.COLOR, cls.HEX_WHITE)
-                    print(color)
                     rs.ObjectColor(
                             guid,
                             Color.HEXtoRGB(
@@ -122,7 +121,7 @@ class TextDot(Rhyton):
     """
     OVERRIDE_PROGRESS = "Text Dots..."
     @classmethod
-    def add(cls, data, valueKey, aggregate=True):
+    def add(cls, data, valueKey, aggregate=True, prefixKey=None):
         """
         Adds a new text dot to the document.
         The textdot location is the center of the bounding box of given guid(s).
@@ -172,7 +171,8 @@ class TextDot(Rhyton):
                 bBox = rs.BoundingBox(dot[cls.GUID])
                 if aggregate:
                     try:
-                        value = ElementUserText.aggregate(dot[cls.GUID], valueKey)
+                        value = ElementUserText.aggregate(
+                                dot[cls.GUID], valueKey)
                         value = Format.formatNumber(value, valueKey)
                     except:
                         value = len(dot[cls.GUID])
@@ -186,6 +186,9 @@ class TextDot(Rhyton):
                             value = cls.EMPTY
                         elif value == None:
                             value = cls.NOT_AVAILABLE
+
+                if prefixKey:
+                    value = "{}: {}".format(dot[prefixKey], value)
 
                 point = Line(bBox[0], bBox[6]).PointAt(0.5)
                 textDot = rs.AddTextDot(value, point)
@@ -257,7 +260,7 @@ class DocumentConfigStorage:
         if raw and raw != Rhyton.WHITESPACE:
             self.storage = json.loads(raw)
         else:
-            print('No configuration available.')
+            print("INFO: No configuration available.")
 
     def save(self, flag, data):
         """
