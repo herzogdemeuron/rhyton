@@ -1,5 +1,5 @@
 """
-Rhyton is a core library for Rhino that you can develop your data-centric 
+Rhyton is a core library for Rhino that you can use to develop your data-centric 
 Rhino extensions with.
 
 Focus Areas
