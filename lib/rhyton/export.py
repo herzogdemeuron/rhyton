@@ -63,32 +63,23 @@ class CsvExporter(ExportBase):
                     f,
                     fieldnames=headers,
                     extrasaction='ignore',
-                    dialect='excel')
+                    dialect='excel',
+                    delimiter=cls.getListseperator())
             writer.writeheader()
             writer.writerows(data)
         
         return file
 
     @staticmethod
-    def append(data, file):
-        # try:
-        #     with open(file, 'rb') as f:
-        #         reader = csv.reader(f, dialect='excel')
-        #         headers = next(reader)
-        # except FileNotFoundError:
-        #     print("File does not exist.")
-        
-        # if headers:
-        #     with open(file, 'a', newline='') as f:
-        #         writer = csv.DictWriter(
-        #                 f,
-        #                 fieldnames=headers,
-        #                 extrasaction='ignore',
-        #                 dialect='excel')
-        #         writer.writerows(data)
-
-        #     return file
-        pass
+    def getListseperator():
+        """
+        Returns the list seperator for the current locale.
+        """
+        import _winreg
+        key = _winreg.OpenKey(
+                _winreg.HKEY_CURRENT_USER,
+                r"Control Panel\International")
+        return _winreg.QueryValueEx(key, "sList")[0]
 
 
 class JsonExporter(ExportBase):
@@ -134,3 +125,4 @@ class JsonExporter(ExportBase):
                         existingData, encoding="utf-8", ensure_ascii=False))
 
         return file
+    
