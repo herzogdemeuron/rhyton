@@ -36,6 +36,10 @@ class Visualize:
             return
         
         keys = ElementUserText.getKeys(breps)
+        if not keys:
+            SelectionWindow.showWarning('No user text found on selected objects.')
+            return
+        
         selectedKey = SelectionWindow.show(
                 keys, message='Select Parameter to Group By:')
         if not selectedKey:
@@ -72,6 +76,10 @@ class Visualize:
             return
         
         keys = ElementUserText.getKeys(breps)
+        if not keys:
+            SelectionWindow.showWarning('No user text found on selected objects.')
+            return
+        
         selectedKey = SelectionWindow.show(
                 keys, message='Select Parameter to Calculate Total:')
         if not selectedKey:
@@ -103,6 +111,10 @@ class Visualize:
             return
 
         keys = ElementUserText.getKeys(breps)
+        if not keys:
+            SelectionWindow.showWarning('No user text found on selected objects.')
+            return
+        
         selectedKey = SelectionWindow.show(
                 options=keys, message='Select Parameter to visualize:')
         if not selectedKey:
@@ -518,6 +530,10 @@ class Powerbi:
                 return
         
             allKeys = ElementUserText.getKeys(breps)
+            if not allKeys:
+                SelectionWindow.showWarning('No user text found on selected objects.')
+                return
+        
             vizKey = SelectionWindow.show(
                     allKeys, message="Select Parameter to Visualize:")
             config[cls.VIZ_KEY] = vizKey
