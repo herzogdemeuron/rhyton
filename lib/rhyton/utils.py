@@ -48,10 +48,10 @@ class Format:
         """
         suffix = Rhyton.UNIT_SUFFIX
         if 'area' in key.lower():
-            suffix = Rhyton.UNIT_SUFFIX + '2'
+            suffix = Rhyton.UNIT_SUFFIX + '²'
 
         if 'volume' in key.lower():
-            suffix = Rhyton.UNIT_SUFFIX + '3'
+            suffix = Rhyton.UNIT_SUFFIX + '³'
 
         if Rhyton.ROUNDING_DECIMALS != 0:
             return " ".join([str(round(number, Rhyton.ROUNDING_DECIMALS)), suffix])
