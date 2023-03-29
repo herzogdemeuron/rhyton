@@ -501,7 +501,7 @@ class Group:
         """
         import uuid
         groupName = Rhyton.DELIMITER.join(
-                [Rhyton.GROUP, groupName, str(uuid.uuid1())])
+                [Rhyton.GROUP, str(groupName), str(uuid.uuid1())])
         rs.AddGroup(groupName)
         rs.AddObjectsToGroup(guids, groupName)
         return groupName
