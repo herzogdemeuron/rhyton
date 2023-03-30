@@ -145,7 +145,7 @@ class Visualize:
         rs.EnableRedraw(True)
     
     @staticmethod
-    def reset():
+    def reset(clearSource=False):
         """
         Resets the visualization for 'all' or 'selected' objects.
         Ungroups visualized objects.
@@ -165,7 +165,7 @@ class Visualize:
                 return
             
             rs.EnableRedraw(False)
-            ElementOverrides.clear(breps)
+            ElementOverrides.clear(breps, clearSource=clearSource)
             Group.dissolve(breps)
         elif resetAll == 'reset':
             rs.EnableRedraw(False)
@@ -178,7 +178,7 @@ class Visualize:
             # check if guids are still valid
             guids = [guid for guid in guids if rs.IsObject(guid)]
             Group.dissolve(guids)
-            ElementOverrides.clear(guids)
+            ElementOverrides.clear(guids, clearSource=clearSource)
             textDots = DocumentConfigStorage().get(
                     Rhyton().extensionTextdots, dict()).keys()
             rs.DeleteObjects(textDots)

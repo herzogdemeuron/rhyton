@@ -87,13 +87,14 @@ class ElementOverrides:
 
 
     @classmethod
-    def clear(cls, guids):
+    def clear(cls, guids, clearSource=False):
         """
         Clear the color overrides for given objects.
         The original colors will be restored from the ``Document Text``.
 
         Args:
             guids (str): The ids of the objects.
+            clearSource (bool, optional): If ``True``, the color source will be set to ``0``. Defaults to ``False``.
         """
         from rhyton.color import Color
         from rhyton.ui import ProgressBar
@@ -108,8 +109,9 @@ class ElementOverrides:
                     rgbColor = Color.HEXtoRGB(hexColor)
                     rs.ObjectColor(guid, rgbColor)
 
-                rs.ObjectColorSource(guid, originalColors.get(
-                        guid, dict()).get(Rhyton.COLOR_SOURCE, 0))
+                if clearSource:
+                    rs.ObjectColorSource(guid, originalColors.get(
+                            guid, dict()).get(Rhyton.COLOR_SOURCE, 0))
                 bar.update()
 
         AffectedElements.remove(Rhyton().extensionOriginalColors, guids)

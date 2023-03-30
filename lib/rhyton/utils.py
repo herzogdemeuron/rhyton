@@ -1,4 +1,6 @@
-"""power
+# -*- coding: utf-8 -*-
+
+"""
 Module for general utily functions.
 """
 # rhyton imports
