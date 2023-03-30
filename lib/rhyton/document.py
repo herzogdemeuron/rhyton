@@ -638,3 +638,13 @@ def GetFilePath(ExtensionFilter):
         str: The file path.
     """
     return rs.OpenFileName(filter=ExtensionFilter)
+
+
+def GetUnitSystem(abbreviate=False):
+    """
+    Gets the current Rhino units.
+
+    Returns:
+        str: The current Rhino units.
+    """
+    return rs.UnitSystemName(rs.UnitSystem(), abbreviate=abbreviate)

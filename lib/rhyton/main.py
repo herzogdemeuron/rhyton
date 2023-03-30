@@ -58,7 +58,6 @@ class Rhyton(object):
     KEY_PREFIX_NAME = 'key_prefix'
     UNIT_SUFFIX_NAME = 'unit_suffix'
     ROUNDING_DECIMALS_NAME = 'rounding_decimals'
-    UNIT_SUFFIX = "m"
     ROUNDING_DECIMALS = 2
 
 
@@ -75,7 +74,6 @@ class Rhyton(object):
 
         self.settings = self.getSettings()
         self.saveSettings(self.settings)
-        Rhyton.UNIT_SUFFIX = self.settings[self.UNIT_SUFFIX_NAME]
         Rhyton.ROUNDING_DECIMALS = int(self.settings[self.ROUNDING_DECIMALS_NAME])
 
     def saveSettings(self, settings):
@@ -106,24 +104,28 @@ class Rhyton(object):
         else:
             return self.generateSettings()
 
-    def generateSettings(self,
-                unitSuffix=UNIT_SUFFIX,
-                roundingDecimals=ROUNDING_DECIMALS):
+    def generateSettings(self):
         """
         Generates a settings configuration.
-
-        Args:
-            unitSuffix (str, optional): The unit suffix. Defaults to "m".
-            roundingDecimals (int, optional): The rounding precision for display values. Defaults to 2.
 
         Returns:
             dict: The resulting configuration.
         """
         config = dict()
-        config[self.UNIT_SUFFIX_NAME] = unitSuffix
-        config[self.ROUNDING_DECIMALS_NAME] = roundingDecimals
+        config[self.ROUNDING_DECIMALS_NAME] = self.ROUNDING_DECIMALS
         return config
     
+    @property
+    def unitSuffix(self):
+        """
+        The unit suffix.
+
+        Returns:
+            string: The unit suffix.
+        """
+        import document
+        return document.GetUnitSystem(abbreviate=True)
+
     @property
     def extensionName(self):
         """

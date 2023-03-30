@@ -48,12 +48,12 @@ class Format:
         Returns:
             float: The formatted number.
         """
-        suffix = Rhyton.UNIT_SUFFIX
+        suffix = Rhyton().unitSuffix
         if 'area' in key.lower():
-            suffix = Rhyton.UNIT_SUFFIX + '²'
+            suffix = Rhyton().unitSuffix + '²'
 
         if 'volume' in key.lower():
-            suffix = Rhyton.UNIT_SUFFIX + '³'
+            suffix = Rhyton().unitSuffix + '³'
 
         if Rhyton.ROUNDING_DECIMALS != 0:
             return " ".join([str(round(number, Rhyton.ROUNDING_DECIMALS)), suffix])
