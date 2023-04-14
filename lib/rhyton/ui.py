@@ -264,18 +264,16 @@ class Export:
         if not exportMethod:
             return
         
-        # with Layer.hierarchyInformation(breps):
-        depth =  Layer.maxHierarchy(breps)
-        Layer.addLayerHierarchy(breps, depth)
-        flag = '.'.join([Rhyton().extensionName, Rhyton.EXPORT_CHECKBOXES])
-        selectedKeys = self.getExportKeys(flag, breps)
-        if not selectedKeys:
-            return
+        with Layer.hierarchyInformation(breps):
+            flag = '.'.join([Rhyton().extensionName, Rhyton.EXPORT_CHECKBOXES])
+            selectedKeys = self.getExportKeys(flag, breps)
+            if not selectedKeys:
+                return
 
-        if exportMethod == Rhyton.CSV:
-            self.toCSV(breps, selectedKeys)
-        elif exportMethod == Rhyton.JSON:
-            self.toJSON(breps, selectedKeys)
+            if exportMethod == Rhyton.CSV:
+                self.toCSV(breps, selectedKeys)
+            elif exportMethod == Rhyton.JSON:
+                self.toJSON(breps, selectedKeys)
 
     def toCSV(self, guids, keys):
         """
