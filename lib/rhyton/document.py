@@ -380,17 +380,18 @@ class ElementUserText:
             list: A list of dictionaries.
         """
         data = []
+        keys = toList(keys)
         for guid in guids:
             if not keys: 
                 keys = rs.GetUserText(guid)
 
-            keys = toList(keys)
             entry = dict()
             entry[Rhyton.GUID] = guid
             for key in keys:
                 entry[key] = detectType(rs.GetUserText(guid, key))
-                data.append(entry)
 
+            data.append(entry)
+            
         return data
     
     @staticmethod
