@@ -179,4 +179,3 @@ def detectType(value):
         return False
 
     return value
-    
