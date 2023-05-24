@@ -13,7 +13,7 @@ from Rhino.Geometry import Line
 
 # rhyton imports
 from rhyton.main import Rhyton
-from rhyton.utils import Format, toList, getValue
+from rhyton.utils import Format, toList, detectType
 
 
 class ElementOverrides:
@@ -182,7 +182,7 @@ class TextDot:
                     except:
                         value = len(dot[Rhyton.GUID])
                 else:
-                    value = getValue(
+                    value = ElementUserText.getValue(
                                 dot[Rhyton.GUID][0], valueKey)
                     try:
                         value = Format.formatNumber(float(value), valueKey)
@@ -388,7 +388,7 @@ class ElementUserText:
             entry = dict()
             entry[Rhyton.GUID] = guid
             for key in keys:
-                entry[key] = getValue(guid, key)
+                entry[key] = detectType(rs.GetUserText(guid, key))
 
             data.append(entry)
             
@@ -409,7 +409,7 @@ class ElementUserText:
                 keys.add(key)
 
         return keys
-
+    
     @staticmethod
     def getValues(guids, keys=[]):
         """
@@ -423,17 +423,33 @@ class ElementUserText:
         for guid in guids:
             if keys:
                 for key in toList(keys):
-                    value = getValue(guid, key)
+                    value = detectType(rs.GetUserText(guid, key))
                     values.add(value)
             else:
                 elementKeys = rs.GetUserText(guid)
                 if elementKeys:
                     for key in elementKeys:
-                        value = getValue(guid, key)
+                        value = detectType(rs.GetUserText(guid, key))
                         values.add(value)
         
         return values
+    
+    @staticmethod
+    def getValue(guid, key):
+        """
+        Wrapper function to get user text from an objects
 
+        Args:
+            guid (str): A rhino objects id.
+            key (str): The key to get the value from.
+
+        Returns:
+            mixed: None if key does not exist,
+            " " if key has no value,
+            else: str of value
+        """
+        return detectType(rs.GetUserText(guid, key))
+        
     @staticmethod
     def aggregate(guids, keys=[]):
         """
