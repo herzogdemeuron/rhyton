@@ -10,10 +10,11 @@ from collections import defaultdict
 # rhino imports
 import rhinoscriptsyntax as rs
 from Rhino.Geometry import Line
+import Rhino
 
 # rhyton imports
 from rhyton.main import Rhyton
-from rhyton.utils import Format, toList, getValue
+from rhyton.utils import Format, toList, detectType
 
 
 class ElementOverrides:
@@ -182,7 +183,7 @@ class TextDot:
                     except:
                         value = len(dot[Rhyton.GUID])
                 else:
-                    value = getValue(
+                    value = ElementUserText.getValue(
                                 dot[Rhyton.GUID][0], valueKey)
                     try:
                         value = Format.formatNumber(float(value), valueKey)
@@ -388,7 +389,7 @@ class ElementUserText:
             entry = dict()
             entry[Rhyton.GUID] = guid
             for key in keys:
-                entry[key] = getValue(guid, key)
+                entry[key] = ElementUserText.getValue(guid, key)
 
             data.append(entry)
             
@@ -423,16 +424,36 @@ class ElementUserText:
         for guid in guids:
             if keys:
                 for key in toList(keys):
-                    value = getValue(guid, key)
+                    value = ElementUserText.getValue(guid, key)
                     values.add(value)
             else:
                 elementKeys = rs.GetUserText(guid)
                 if elementKeys:
                     for key in elementKeys:
-                        value = getValue(guid, key)
+                        value = ElementUserText.getValue(guid, key)
                         values.add(value)
         
         return values
+    
+    @staticmethod
+    def getValue(guid, key):
+        """
+        Wrapper function to get user text from an object
+
+        Args:
+            guid (str): A rhino objects id.
+            key (str): The key to get the value from.
+
+        Returns:
+            mixed: None if key does not exist,
+            " " if key has no value,
+            else: str of value
+        """
+
+        # check if user text value is a rhino fuction value
+        keyValue = ElementUserText.detectFunctionValue(rs.GetUserText(guid, key), guid)
+        
+        return detectType(keyValue)
 
     @staticmethod
     def aggregate(guids, keys=[]):
@@ -456,7 +477,8 @@ class ElementUserText:
                     values.append(float(value))
         
         return sum(values)
-    
+
+
     @staticmethod
     def remove(guids, keys):
         """
@@ -471,6 +493,22 @@ class ElementUserText:
             for key in keys:
                 rs.SetUserText(guid, key)
 
+    @staticmethod
+    def detectFunctionValue(uTxt, objID):
+        """
+        Detects if the value is calculated with a Rhino function
+
+        Args:
+            value (str): the string check
+        Returns:
+            value: converted or original value
+        """
+        if not uTxt:
+            return uTxt
+        if uTxt[:2] == "%<" and uTxt[-2:] == ">%":
+            obj = rs.coercerhinoobject(objID)
+            uTxt = Rhino.RhinoApp.ParseTextField(uTxt, obj, None)
+        return uTxt
 
 class Group:
     """
