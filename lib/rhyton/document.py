@@ -410,7 +410,7 @@ class ElementUserText:
                 keys.add(key)
 
         return keys
-
+    
     @staticmethod
     def getValues(guids, keys=[]):
         """
@@ -454,7 +454,7 @@ class ElementUserText:
         keyValue = ElementUserText.detectFunctionValue(rs.GetUserText(guid, key), guid)
         
         return detectType(keyValue)
-
+        
     @staticmethod
     def aggregate(guids, keys=[]):
         """

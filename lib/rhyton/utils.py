@@ -6,9 +6,6 @@ Module for general utily functions.
 # rhyton imports
 from rhyton.main import Rhyton
 
-# rhino imports
-import Rhino
-import rhinoscriptsyntax as rs
 
 class Format:
     """
@@ -158,7 +155,7 @@ def removePrefix(string, prefix):
 
 def detectType(value):
     """
-    Tries to convert a given string to a number, boolean or string or function.
+    Tries to convert a given string to a number, boolean or string.
 
     Args:
         value (str): The string to convert.
