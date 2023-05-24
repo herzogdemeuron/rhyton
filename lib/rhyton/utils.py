@@ -182,35 +182,3 @@ def detectType(value):
         return False
 
     return value
-
-def _detect_function_type(uTxt, objID):
-    """
-    Detects if the value is calculated with a Rhino function
-
-    Args:
-        value (str): the string check
-    Returns:
-        value: converted or original value
-    """
-    if not uTxt:
-        return uTxt
-    if uTxt[:2] == "%<" and uTxt[-2:] == ">%":
-        obj = rs.coercerhinoobject(objID)
-        uTxt = Rhino.RhinoApp.ParseTextField(uTxt, obj, None)
-    return uTxt
-
-def getValue(guid, key):
-    """
-    Wrapper function to get user text from an object
-
-    Args:
-        guid (str): A rhino objects id.
-        key (str): The key to get the value from.
-
-    Returns:
-        mixed: None if key does not exist,
-        " " if key has no value,
-        else: str of value
-    """
-    keyValue = _detect_function_type(rs.GetUserText(guid, key), guid)
-    return detectType(keyValue)
