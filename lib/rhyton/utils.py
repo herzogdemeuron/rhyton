@@ -38,7 +38,7 @@ class Format:
         return str(value).replace(Rhyton.DELIMITER, Rhyton.WHITESPACE).title()
 
     @staticmethod
-    def formatNumber(number, key):
+    def formatNumber(number, key, unitSuffix):
         """
         Formats a number.
 
@@ -48,17 +48,14 @@ class Format:
         Returns:
             float: The formatted number.
         """
-        suffix = Rhyton().unitSuffix
-        if 'area' in key.lower():
-            suffix = Rhyton().unitSuffix + '²'
+        key = key.lower()
 
-        if 'volume' in key.lower():
-            suffix = Rhyton().unitSuffix + '³'
+        if 'area' in key:
+            unitSuffix += '²'
+        elif 'volume' in key:
+            unitSuffix += '³'
 
-        if Rhyton.ROUNDING_DECIMALS != 0:
-            return " ".join([str(round(number, Rhyton.ROUNDING_DECIMALS)), suffix])
-        else:
-            return " ".join([str(int(number)), suffix])
+        return str(round(number, Rhyton.ROUNDING_DECIMALS)) + " " + unitSuffix
     
 
 def displayKey(key, rmPrefix=None):
@@ -155,7 +152,8 @@ def removePrefix(string, prefix):
 
 def detectType(value):
     """
-    Tries to convert a given string to a number, boolean or string.
+    Tries to convert a given string to an integer, number or boolean.
+    If no conversion is possible, the original string is returned.
 
     Args:
         value (str): The string to convert.

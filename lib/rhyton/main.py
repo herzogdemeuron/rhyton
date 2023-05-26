@@ -116,17 +116,6 @@ class Rhyton(object):
         return config
     
     @property
-    def unitSuffix(self):
-        """
-        The unit suffix.
-
-        Returns:
-            string: The unit suffix.
-        """
-        import document
-        return document.GetUnitSystem(abbreviate=True)
-
-    @property
     def extensionName(self):
         """
         The current extension name.

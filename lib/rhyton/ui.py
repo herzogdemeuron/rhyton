@@ -35,32 +35,33 @@ class Visualize:
         if not breps:
             return
         
-        keys = ElementUserText.getKeys(breps)
-        if not keys:
-            SelectionWindow.showWarning('No user text found on selected objects.')
-            return
-        
-        selectedKey = SelectionWindow.show(
-                keys, message='Select Parameter to Group By:')
-        if not selectedKey:
-            return
-        
-        selectedValue = SelectionWindow.show(
-                keys, message='Select Parameter to Summarize')
-        if not selectedValue:
-            return
-        
-        cls.reset()
-        rs.EnableRedraw(False)
-        objectData = ColorScheme.apply(breps, selectedKey)
-        objectData = groupGuidsBy(objectData, [selectedKey, Rhyton.COLOR])
-        objectData = TextDot.add(
-                objectData, selectedValue, prefixKey=selectedKey)
-        for item in objectData:
-            Group.create(item[Rhyton.GUID], item[selectedKey])
-        
-        rs.UnselectAllObjects()
-        rs.EnableRedraw(True)
+        with Layer.hierarchyInformation(breps):
+            keys = ElementUserText.getKeys(breps)
+            if not keys:
+                SelectionWindow.showWarning('No user text found on selected objects.')
+                return
+            
+            selectedKey = SelectionWindow.show(
+                    keys, message='Select Parameter to Group By:')
+            if not selectedKey:
+                return
+            
+            selectedValue = SelectionWindow.show(
+                    keys, message='Select Parameter to Summarize')
+            if not selectedValue:
+                return
+            
+            cls.reset()
+            rs.EnableRedraw(False)
+            objectData = ColorScheme.apply(breps, selectedKey)
+            objectData = groupGuidsBy(objectData, [selectedKey, Rhyton.COLOR])
+            objectData = TextDot.add(
+                    objectData, selectedValue, prefixKey=selectedKey)
+            for item in objectData:
+                Group.create(item[Rhyton.GUID], item[selectedKey])
+            
+            rs.UnselectAllObjects()
+            rs.EnableRedraw(True)
 
     @classmethod
     def sumTotal(cls):

@@ -9,7 +9,6 @@ from collections import defaultdict
 
 # rhino imports
 import rhinoscriptsyntax as rs
-from Rhino.Geometry import Line
 import Rhino
 
 # rhyton imports
@@ -170,41 +169,78 @@ class TextDot:
         from rhyton.ui import ProgressBar
 
         data = toList(data)
+        # initialize variables outside of the loop for performance reasons
         textDots = dict()
+        # chatGPT says that is faster to make variables instead of doing the lookups every time
+        rhytonGuid = Rhyton.GUID
+        whiteSpace = Rhyton.WHITESPACE
+        empty = Rhyton.EMPTY
+        notAvailable = Rhyton.NOT_AVAILABLE
+        color = Rhyton.COLOR
+        hexWhite = Rhyton.HEX_WHITE
+        font = Rhyton.FONT
+        unitSuffix = GetUnitSystem(abbreviate=True)
+        values = []
+
         with ProgressBar(len(data), label="Text Dots...") as bar:
             for dot in data:
-                dot[Rhyton.GUID] = toList(dot[Rhyton.GUID])
-                bBox = rs.BoundingBox(dot[Rhyton.GUID])
+                dot[rhytonGuid] = toList(dot[rhytonGuid])
+                # get guids as variable to perform less lookups
+                guids = dot[rhytonGuid]
+
+                bBox = rs.BoundingBox(guids)
+
                 if aggregate:
-                    try:
-                        value = ElementUserText.aggregate(
-                                dot[Rhyton.GUID], valueKey)
-                        value = Format.formatNumber(value, valueKey)
-                    except:
-                        value = len(dot[Rhyton.GUID])
+                    length = len(guids)
+                    if length > 1:
+                        values = [ElementUserText.getValue(guid, valueKey) for guid in guids]
+                        # check if any value is not a number
+                        if any(not isinstance(value, (float, int)) for value in values):
+                            # if not, use the count of the guids
+                            value = length
+                        else:
+                            value = Format.formatNumber(sum(values), valueKey, unitSuffix)
+
+                    elif length == 1:
+                        value = ElementUserText.getValue(guids[0], valueKey)
+                        if isinstance(value, (int, float)):
+                            value = Format.formatNumber(value, valueKey, unitSuffix)
+                        else:
+                            value = length
                 else:
-                    value = ElementUserText.getValue(
-                                dot[Rhyton.GUID][0], valueKey)
-                    try:
-                        value = Format.formatNumber(float(value), valueKey)
-                    except:
-                        if value == Rhyton.WHITESPACE:
-                            value = Rhyton.EMPTY
+                    value = ElementUserText.getValue(guids[0], valueKey)
+                    if isinstance(value, (int, float)):
+                        value = Format.formatNumber(value, valueKey, unitSuffix)
+                    else:
+                        if value == whiteSpace:
+                            value = empty
                         elif value == None:
-                            value = Rhyton.NOT_AVAILABLE
+                            value = notAvailable
+                        else:
+                            value = str(value)
 
                 if prefixKey:
-                    value = "{}: {}".format(dot[prefixKey], value)
+                    value = str(dot[prefixKey]) + ": " + str(value)
 
-                point = Line(bBox[0], bBox[6]).PointAt(0.5)
-                textDot = rs.AddTextDot(value, point)
+                x1, y1, z1 = bBox[0]  # Coordinates of the first point
+                x2, y2, z2 = bBox[6]  # Coordinates of the second point
+
+                textDot = rs.AddTextDot(
+                        value, (
+                            (x1 + x2) / 2,
+                            (y1 + y2) / 2,
+                            (z1 + z2) / 2
+                            )
+                        )
                 rs.ObjectColor(
                         textDot,
-                        Color.HEXtoRGB(dot.get(Rhyton.COLOR, Rhyton.HEX_WHITE)))
-                rs.TextDotFont(textDot, Rhyton.FONT)
+                        Color.HEXtoRGB(dot.get(color, hexWhite)))
+                rs.TextDotFont(textDot, font)
                 rs.TextDotHeight(textDot, 12.0)
-                dot[Rhyton.GUID].append(str(textDot))
+                # add the guid of the text dot to the input dictionary for later use
+                dot[rhytonGuid].append(str(textDot))
                 textDots[str(textDot)] = 1
+
                 bar.update()
 
         AffectedElements.save(Rhyton().extensionTextdots, textDots)
@@ -342,17 +378,18 @@ class ElementUserText:
         Due to Rhino's limitations, all values will be stored as strings.
 
         Args:
-            data (list(dict)): A list of dictionaries describing the 
-            keyPrefix (str, optional): The prefix for all keys. Defaults to "".
+            data (list(dict)): A list of dictionaries describing the objects and their user text.
         """
-        
         data = toList(data)
+        # set variables before the loop to avoid unnecessary lookups
+        rhytonGuid = Rhyton.GUID
+        extensionName = Rhyton().extensionName + Rhyton.DELIMITER
 
         for entry in data:
-            guid = entry[Rhyton.GUID]
-            del entry[Rhyton.GUID]
+            guid = entry[rhytonGuid]
+            del entry[rhytonGuid]
             for key, value in entry.items():
-                key = Format.key(Rhyton.DELIMITER.join([Rhyton().extensionName, key]))
+                key = Format.key(extensionName + key)
                 rs.SetUserText(
                         guid,
                         key=key,
@@ -418,6 +455,8 @@ class ElementUserText:
 
         Args:
             guids (str): A list of Rhino objects ids.
+        Returns:
+            set: A set of values.
         """
         guids = toList(guids)
         values = set()
@@ -438,7 +477,9 @@ class ElementUserText:
     @staticmethod
     def getValue(guid, key):
         """
-        Wrapper function to get user text from an object
+        Wrapper function to get user text from an object.
+        Enables the use of rhino functions as values.
+        Automatically detects the type of the value.
 
         Args:
             guid (str): A rhino objects id.
@@ -449,36 +490,18 @@ class ElementUserText:
             " " if key has no value,
             else: str of value
         """
+        value = rs.GetUserText(guid, key)
+
+        if not value:
+            return None
 
         # check if user text value is a rhino fuction value
-        keyValue = ElementUserText.detectFunctionValue(rs.GetUserText(guid, key), guid)
+        if value[:2] == "%<" and value[-2:] == ">%":
+            obj = rs.coercerhinoobject(guid)
+            value = Rhino.RhinoApp.ParseTextField(value, obj, None)
         
-        return detectType(keyValue)
+        return detectType(value)
         
-    @staticmethod
-    def aggregate(guids, keys=[]):
-        """
-        Aggregates user text values from given objects.
-        Non-numeric values will cause an error.
-
-        Args:
-            guids (str): A list of Rhino objects ids.
-            keys (list, optional): A list of keys. Defaults to [].
-
-        Returns:
-            float: The sum of all values.
-        """
-        keys = toList(keys)
-        values = []
-        for guid in guids:
-            for key in keys:
-                value = rs.GetUserText(guid, key)
-                if value:
-                    values.append(float(value))
-        
-        return sum(values)
-
-
     @staticmethod
     def remove(guids, keys):
         """
@@ -493,22 +516,6 @@ class ElementUserText:
             for key in keys:
                 rs.SetUserText(guid, key)
 
-    @staticmethod
-    def detectFunctionValue(uTxt, objID):
-        """
-        Detects if the value is calculated with a Rhino function
-
-        Args:
-            value (str): the string check
-        Returns:
-            value: converted or original value
-        """
-        if not uTxt:
-            return uTxt
-        if uTxt[:2] == "%<" and uTxt[-2:] == ">%":
-            obj = rs.coercerhinoobject(objID)
-            uTxt = Rhino.RhinoApp.ParseTextField(uTxt, obj, None)
-        return uTxt
 
 class Group:
     """
@@ -595,25 +602,28 @@ class Layer:
             data (dict): A dictionary or list of dictionaries.
             depth (int): The maximum depth of sublayer names to add.
         """
-        from rhyton.ui import ProgressBar
-
+        # No progress bar on this method because it is too fast
         guids = toList(guids)
 
-        with ProgressBar(len(guids), label="Adding Layer Information...") as bar:
+        # set variables outside of loop for performance
+        layerHierarchy = Rhyton.LAYER_HIERARCHY + Rhyton.DELIMITER
+        layerHierarchyName = layerHierarchy + Rhyton.NAME
+        rhytonGuid = Rhyton.GUID
 
-            for guid in guids:
-                data = dict()
-                data[Rhyton.GUID] = guid
-                objectLayer = rs.ObjectLayer(guid)
-                fullHierarchy = Rhyton.DELIMITER.join([Rhyton.LAYER_HIERARCHY, Rhyton.NAME])
-                data[fullHierarchy] = objectLayer
-                layers = objectLayer.split('::')[:depth]
-                for index, layer in enumerate(layers, 1):
-                    key = Rhyton.DELIMITER.join([Rhyton.LAYER_HIERARCHY, str(index)])
-                    data[key] = layer
-            
-                ElementUserText.apply(data)
-                bar.update()
+        # initialize data dictionary outside of loop for performance
+        dataList = []
+
+        # gather layer information first
+        for guid in guids:
+            objectLayer = rs.ObjectLayer(guid)
+            data = {rhytonGuid: guid,
+                    layerHierarchyName: objectLayer}
+            # add layer information for each depth level
+            data.update({layerHierarchy + str(index): layer for index, layer in enumerate(objectLayer.split('::')[:depth], 1)})
+            dataList.append(data)
+
+        # add layer information to user text, minimize function calls
+        ElementUserText.apply(dataList)
     
     @staticmethod
     def removeLayerHierarchy(guids):
@@ -623,9 +633,8 @@ class Layer:
         Args:
             guids (list(str)): A list of Rhino object ids.
         """
-        keys =  ElementUserText.getKeys(guids)
-        keys = [k for k in keys if Rhyton.LAYER_HIERARCHY in k]
-        ElementUserText.remove(guids, keys)
+        # all in one nasty line for performance (no variable creation) sorry!
+        ElementUserText.remove(guids, [k for k in ElementUserText.getKeys(guids) if Rhyton.LAYER_HIERARCHY in k])
 
 
 def GetBreps(filterByTypes=[8, 16, 1073741824]):
