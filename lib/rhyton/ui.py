@@ -668,7 +668,7 @@ class Powerbi:
         # use buildin check_output right away
         si = subprocess.STARTUPINFO()
         si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        output = subprocess.check_output(call).decode()
+        output = subprocess.check_output(call).decode('cp437')
         # check in last line for process name
         lastLine = output.strip().split('\r\n')[-1]
         # because Fail message could be translated
