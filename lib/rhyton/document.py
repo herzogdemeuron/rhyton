@@ -655,7 +655,7 @@ def GetBreps(filterByTypes=[8, 16, 1073741824]):
     if not selection:
         return None
 
-    breps = [str(b) for b in selection if rs.ObjectType(b) in filterByTypes]
+    #breps = [str(b) for b in selection if rs.ObjectType(b) in filterByTypes]
     return breps
 
 
