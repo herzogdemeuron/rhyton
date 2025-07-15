@@ -161,7 +161,7 @@ class Visualize:
                     choices, message='Reset all visualizations?')
 
         if resetAll == 'select':
-            breps = GetBreps(filterByTypes=[8, 16, 8192, 1073741824])
+            breps = GetBreps(filterByTypes=[8, 16, 8192, 1073741824, 1073741831])
             if not breps:
                 return
             
