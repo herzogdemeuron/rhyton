@@ -637,7 +637,7 @@ class Layer:
         ElementUserText.remove(guids, [k for k in ElementUserText.getKeys(guids) if Rhyton.LAYER_HIERARCHY in k])
 
 
-def GetBreps(filterByTypes=[8, 16, 1073741824, 1073741831]):
+def GetBreps(filterByTypes=[8, 16, 1073741824, 65536]):
     """
     Gets the currently selected Rhino objects or asks the user to go get some.
     
@@ -646,7 +646,7 @@ def GetBreps(filterByTypes=[8, 16, 1073741824, 1073741831]):
         8 = Surface
         16 = Polysurface
         1073741824 = Extrusion
-        1073741831 = Hatch
+        65536 = Hatch
 
     Returns:
         list[str]: A list of Rhino objects ids.
